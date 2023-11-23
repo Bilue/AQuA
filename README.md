@@ -1,8 +1,9 @@
-# Page Object Model (POM) Framework in Python
-The Page Object Model (POM) is a design pattern used in test automation that creates an object representation of a web page in a single place, providing a centralized way of accessing its elements. In a POM framework, the web page elements are defined as properties of a class, making the tests more readable, maintainable, and scalable.
+# AQuA (Automated Quality Assurance) Hybrid Framework in Python
+The Hybrid Framework integrates various automation testing methodologies such as Page Object Model (POM), Data-Driven Testing, and Keyword-Driven Testing. The Page Object Model (POM) is a design pattern utilized in test automation to encapsulate and manage the representation of web pages in a single location. It establishes an object-oriented model where web page elements are defined as properties within a class, offering a centralized approach to access these elements. This approach enhances test script readability, maintainability, and scalability by creating a separation between test code and the underlying web page structure.
 
-## Getting started with POM in Python
-Here are the steps to set up a POM framework in Python:
+
+## Getting started with AQuA
+Here are the steps to set up framework in Python:
 
 ## Install required packages:
 You need to have the following packages installed: selenium, unittest, and pytest.

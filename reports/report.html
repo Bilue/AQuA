@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>report.html</title>
+    <link href="assets/style.css" rel="stylesheet" type="text/css"/></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) { // eslint-disable-line no-redeclare
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function findAll(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sortColumn(elem) {
+    toggleSortStates(elem);
+    const colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    let key;
+    if (elem.classList.contains('result')) {
+        key = keyResult;
+    } else if (elem.classList.contains('links')) {
+        key = keyLink;
+    } else {
+        key = keyAlpha;
+    }
+    sortTable(elem, key(colIndex));
+}
+
+function showAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(showExtras);
+}
+
+function hideAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(hideExtras);
+}
+
+function showExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.remove('collapsed');
+    expandcollapse.classList.remove('expander');
+    expandcollapse.classList.add('collapser');
+}
+
+function hideExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.add('collapsed');
+    expandcollapse.classList.remove('collapser');
+    expandcollapse.classList.add('expander');
+}
+
+function showFilters() {
+    let visibleString = getQueryParameter('visible') || 'all';
+    visibleString = visibleString.toLowerCase();
+    const checkedItems = visibleString.split(',');
+
+    const filterItems = document.getElementsByClassName('filter');
+    for (let i = 0; i < filterItems.length; i++) {
+        filterItems[i].hidden = false;
+
+        if (visibleString != 'all') {
+            filterItems[i].checked = checkedItems.includes(filterItems[i].getAttribute('data-test-result'));
+            filterTable(filterItems[i]);
+        }
+    }
+}
+
+function addCollapse() {
+    // Add links for show/hide all
+    const resulttable = find('table#results-table');
+    const showhideall = document.createElement('p');
+    showhideall.innerHTML = '<a href="javascript:showAllExtras()">Show all details</a> / ' +
+                            '<a href="javascript:hideAllExtras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    findAll('.col-result').forEach(function(elem) {
+        const collapsed = getQueryParameter('collapsed') || 'Passed';
+        const extras = elem.parentNode.nextElementSibling;
+        const expandcollapse = document.createElement('span');
+        if (extras.classList.contains('collapsed')) {
+            expandcollapse.classList.add('expander');
+        } else if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add('collapsed');
+            expandcollapse.classList.add('expander');
+        } else {
+            expandcollapse.classList.add('collapser');
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener('click', function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains('collapsed')) {
+                showExtras(event.currentTarget);
+            } else {
+                hideExtras(event.currentTarget);
+            }
+        });
+    });
+}
+
+function getQueryParameter(name) {
+    const match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () { // eslint-disable-line no-unused-vars
+    resetSortHeaders();
+
+    addCollapse();
+
+    showFilters();
+
+    sortColumn(find('.initial-sort'));
+
+    findAll('.sortable').forEach(function(elem) {
+        elem.addEventListener('click',
+            function() {
+                sortColumn(elem);
+            }, false);
+    });
+}
+
+function sortTable(clicked, keyFunc) {
+    const rows = findAll('.results-table-row');
+    const reversed = !clicked.classList.contains('asc');
+    const sortedRows = sort(rows, keyFunc, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    const thead = document.getElementById('results-table-head');
+    document.getElementById('results-table').remove();
+    const parent = document.createElement('table');
+    parent.id = 'results-table';
+    parent.appendChild(thead);
+    sortedRows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName('BODY')[0].appendChild(parent);
+}
+
+function sort(items, keyFunc, reversed) {
+    const sortArray = items.map(function(item, i) {
+        return [keyFunc(item), i];
+    });
+
+    sortArray.sort(function(a, b) {
+        const keyA = a[0];
+        const keyB = b[0];
+
+        if (keyA == keyB) return 0;
+
+        if (reversed) {
+            return keyA < keyB ? 1 : -1;
+        } else {
+            return keyA > keyB ? 1 : -1;
+        }
+    });
+
+    return sortArray.map(function(item) {
+        const index = item[1];
+        return items[index];
+    });
+}
+
+function keyAlpha(colIndex) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[colIndex].firstChild.data.toLowerCase();
+    };
+}
+
+function keyLink(colIndex) {
+    return function(elem) {
+        const dataCell = elem.childNodes[1].childNodes[colIndex].firstChild;
+        return dataCell == null ? '' : dataCell.innerText.toLowerCase();
+    };
+}
+
+function keyResult(colIndex) {
+    return function(elem) {
+        const strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+            'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[colIndex].firstChild.data);
+    };
+}
+
+function resetSortHeaders() {
+    findAll('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    findAll('.sortable').forEach(function(elem) {
+        const icon = document.createElement('div');
+        icon.className = 'sort-icon';
+        icon.textContent = 'vvv';
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove('desc', 'active');
+        elem.classList.add('asc', 'inactive');
+    });
+}
+
+function toggleSortStates(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        resetSortHeaders();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function isAllRowsHidden(value) {
+    return value.hidden == false;
+}
+
+function filterTable(elem) { // eslint-disable-line no-unused-vars
+    const outcomeAtt = 'data-test-result';
+    const outcome = elem.getAttribute(outcomeAtt);
+    const classOutcome = outcome + ' results-table-row';
+    const outcomeRows = document.getElementsByClassName(classOutcome);
+
+    for(let i = 0; i < outcomeRows.length; i++){
+        outcomeRows[i].hidden = !elem.checked;
+    }
+
+    const rows = findAll('.results-table-row').filter(isAllRowsHidden);
+    const allRowsHidden = rows.length == 0 ? true : false;
+    const notFoundMessage = document.getElementById('not-found-message');
+    notFoundMessage.hidden = !allRowsHidden;
+}
+</script>
+    <h1>report.html</h1>
+    <p>Report generated on 07-Jul-2023 at 12:01:29 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.2.0</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Project Name</td>
+        <td>bilue app App</td></tr>
+      <tr>
+        <td>Python Version</td>
+        <td>3.11.1</td></tr>
+      <tr>
+        <td>User Name</td>
+        <td>Gaurav Purwar</td></tr></table>
+    <h2>Summary</h2>
+    <h1>Project Name: bilue - app App</h1>
+    <p>10 tests ran in 188.14 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">9 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">1 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Description: app App for iOS and Android Smoke Test Suite</h2>
+    <h2>Status : Completed</h2>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable" col="duration">Duration</th>
+          <th class="sortable links" col="links">Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_001_menu_sidebar_sections_validation</td>
+          <td class="col-duration">17.77</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestMenuSideBar.test_001_menu_sidebar_sections_validation_screenshot_2023_07_07-11_59_11.png" width="300"/></td>
+          <td>tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_001_menu_sidebar_sections_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_menu_sidebar.TestMenuSideBar object at 0x1091cad10&gt;<br/>App = &lt;utilities.application.Application object at 0x109233f10&gt;<br/><br/>    def test_001_menu_sidebar_sections_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_001_Menu Side Bar *****************&quot;)<br/>    <br/>            self.profile.delete_all_sub_profiles_except_one(App)<br/>            self.whos_watching_screen.clickOnMainProfileBtn()<br/>            self.home_screen.click(self.home_screen.main_menu_btn)<br/>    <br/>            # Menu Side Bar<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.close_menu_side_bar_btn),<br/>                &quot;Close Menu Bar Button should be visible&quot;)<br/>    <br/>            assertions = [<br/>                (&quot;home&quot;, self.menu_side_bar.home_side_bar_btn),<br/>                (&quot;select bilue tv&quot;, self.menu_side_bar.bilue_tv_side_bar_btn),<br/>                (&quot;select bilue tv plus&quot;, self.menu_side_bar.bilue_tv_plus_side_bar_btn),<br/>                (&quot;select bilue news&quot;, self.menu_side_bar.bilue_news_side_bar_btn),<br/>                (&quot;select bilue kids&quot;, self.menu_side_bar.bilue_kids_side_bar_btn),<br/>                (&quot;select bilue me&quot;, self.menu_side_bar.bilue_me_side_bar_btn),<br/>                (&quot;select bilue arts&quot;, self.menu_side_bar.bilue_arts_side_bar_btn),<br/>                (&quot;Categories111&quot;, self.menu_side_bar.categories_side_bar_title),<br/>                (&quot;Programs A-Z&quot;, self.menu_side_bar.programs_a_to_z_side_bar_btn),<br/>                (&quot;Your bilue app&quot;, self.menu_side_bar.your_bilue_app_side_bar_title),<br/>                (&quot;Support&quot;, self.menu_side_bar.support_side_bar_title),<br/>                (&quot;Settings&quot;, self.menu_side_bar.settings_side_bar_btn),<br/>                (&quot;More&quot;, self.menu_side_bar.more_side_bar_title)<br/>            ]<br/>    <br/>            self.soft_assert.perform_assertions(assertions, self.menu_side_bar, &quot;value&quot;)<br/>    <br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_tv_side_bar_btn),<br/>                &quot;bilue TV Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_tv_plus_side_bar_btn),<br/>                &quot;bilue TV Plus Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_news_side_bar_btn),<br/>                &quot;bilue NEWS Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_kids_side_bar_btn),<br/>                &quot;bilue Kids Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_me_side_bar_btn),<br/>                &quot;bilue ME Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_arts_side_bar_btn),<br/>                &quot;bilue ARTS Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.categories_side_bar_drop_down_btn),<br/>                &quot;bilue ARTS Button should be visible&quot;)<br/>    <br/>&gt;           self.soft_assert.assert_all()<br/><br/>tests/bilue_app/test_menu_sidebar.py:85: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.soft_assert.SoftAssert object at 0x109230d10&gt;<br/><br/>    def assert_all(self):<br/>        if len(self.errors) &gt; 0:<br/>            message = &#x27;\n&#x27;.join(self.errors)<br/>&gt;           raise AssertionError(message)<br/><span class="error">E           AssertionError: Expected value: &#x27;Categories111&#x27; should match the actual value: &#x27;Categories&#x27;</span><br/><br/>utilities/soft_assert.py:59: AssertionError<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_menu_sidebar.TestMenuSideBar object at 0x1091cad10&gt;<br/>App = &lt;utilities.application.Application object at 0x109233f10&gt;<br/><br/>    def test_001_menu_sidebar_sections_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_001_Menu Side Bar *****************&quot;)<br/>    <br/>            self.profile.delete_all_sub_profiles_except_one(App)<br/>            self.whos_watching_screen.clickOnMainProfileBtn()<br/>            self.home_screen.click(self.home_screen.main_menu_btn)<br/>    <br/>            # Menu Side Bar<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.close_menu_side_bar_btn),<br/>                &quot;Close Menu Bar Button should be visible&quot;)<br/>    <br/>            assertions = [<br/>                (&quot;home&quot;, self.menu_side_bar.home_side_bar_btn),<br/>                (&quot;select bilue tv&quot;, self.menu_side_bar.bilue_tv_side_bar_btn),<br/>                (&quot;select bilue tv plus&quot;, self.menu_side_bar.bilue_tv_plus_side_bar_btn),<br/>                (&quot;select bilue news&quot;, self.menu_side_bar.bilue_news_side_bar_btn),<br/>                (&quot;select bilue kids&quot;, self.menu_side_bar.bilue_kids_side_bar_btn),<br/>                (&quot;select bilue me&quot;, self.menu_side_bar.bilue_me_side_bar_btn),<br/>                (&quot;select bilue arts&quot;, self.menu_side_bar.bilue_arts_side_bar_btn),<br/>                (&quot;Categories111&quot;, self.menu_side_bar.categories_side_bar_title),<br/>                (&quot;Programs A-Z&quot;, self.menu_side_bar.programs_a_to_z_side_bar_btn),<br/>                (&quot;Your bilue app&quot;, self.menu_side_bar.your_bilue_app_side_bar_title),<br/>                (&quot;Support&quot;, self.menu_side_bar.support_side_bar_title),<br/>                (&quot;Settings&quot;, self.menu_side_bar.settings_side_bar_btn),<br/>                (&quot;More&quot;, self.menu_side_bar.more_side_bar_title)<br/>            ]<br/>    <br/>            self.soft_assert.perform_assertions(assertions, self.menu_side_bar, &quot;value&quot;)<br/>    <br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_tv_side_bar_btn),<br/>                &quot;bilue TV Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_tv_plus_side_bar_btn),<br/>                &quot;bilue TV Plus Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_news_side_bar_btn),<br/>                &quot;bilue NEWS Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_kids_side_bar_btn),<br/>                &quot;bilue Kids Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_me_side_bar_btn),<br/>                &quot;bilue ME Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.bilue_arts_side_bar_btn),<br/>                &quot;bilue ARTS Button should be visible&quot;)<br/>            self.soft_assert(<br/>                self.menu_side_bar.is_visible_after_wait(self.menu_side_bar.categories_side_bar_drop_down_btn),<br/>                &quot;bilue ARTS Button should be visible&quot;)<br/>    <br/>            self.soft_assert.assert_all()<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_menu_sidebar.py:88: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_menu_sidebar.TestMenuSideBar object at 0x1091cad10&gt;<br/>app = &lt;utilities.application.Application object at 0x109233f10&gt;<br/>e = AssertionError(&quot;Expected value: &#x27;Categories111&#x27; should match the actual value: &#x27;Categories&#x27;&quot;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestMenuSideBar.test_001_menu_sidebar_sections_validation failed: Expected value: &#x27;Categories111&#x27; should match the actual value: &#x27;Categories&#x27;</span><br/><br/>tests/bilue_app/base_tests.py:75: Exception<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_menu_sidebar.py:34 *************** Test_001_Menu Side Bar *****************
+INFO     root:utils.py:393 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+INFO     root:utils.py:207 0 element visible: Who’s watching?
+INFO     root:base_ui.py:44 *************** Wait for element visible performed
+INFO     root:base_ui.py:30 *************** verifying element visibility
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+WARNING  root:profile.py:195 Total number of Sub profiles in Edit section: 1
+INFO     root:utils.py:393 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+INFO     root:utils.py:207 0 element visible: Who’s watching?
+INFO     root:base_ui.py:44 *************** Wait for element visible performed
+INFO     root:base_ui.py:30 *************** verifying element visibility
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[contains(@name,&quot;Automation_test_bilue&quot;)]
+INFO     root:utils.py:207 0 element visible: //*[contains(@name,&quot;Automation_test_bilue&quot;)]
+INFO     root:utils.py:232 Clicked on element //*[contains(@name,&quot;Automation_test_bilue&quot;)]
+INFO     root:base_ui.py:64 ***************//*[contains(@name,&quot;Automation_test_bilue&quot;)] Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: mainMenuButton
+INFO     root:utils.py:207 0 element visible: mainMenuButton
+INFO     root:utils.py:232 Clicked on element mainMenuButton
+INFO     root:base_ui.py:64 ***************mainMenuButton Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Close menu
+INFO     root:utils.py:207 0 element visible: Close menu
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+INFO     root:soft_assert.py:43 Close Menu Bar Button should be visible: Assertion  Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;home&#x27; should match the actual value: &#x27;home&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select bilue tv&#x27; should match the actual value: &#x27;select bilue tv&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select bilue tv plus&#x27; should match the actual value: &#x27;select bilue tv plus&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select bilue news&#x27; should match the actual value: &#x27;select bilue news&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select bilue kids&#x27; should match the actual value: &#x27;select bilue kids&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select bilue me&#x27; should match the actual value: &#x27;select bilue me&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select bilue arts&#x27; should match the actual value: &#x27;select bilue arts&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;Programs A-Z&#x27; should match the actual value: &#x27;Programs A-Z&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;Your bilue app&#x27; should match the actual value: &#x27;Your bilue app&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;Support&#x27; should match the actual value: &#x27;Support&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;Settings&#x27; should match the actual value: &#x27;Settings&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;More&#x27; should match the actual value: &#x27;More&#x27;: Assertion Equal Performed!***
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: select bilue tv
+INFO     root:utils.py:207 0 element visible: select bilue tv
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+INFO     root:soft_assert.py:43 bilue TV Button should be visible: Assertion  Performed!***
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: select bilue tv plus
+INFO     root:utils.py:207 0 element visible: select bilue tv plus
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+INFO     root:soft_assert.py:43 bilue TV Plus Button should be visible: Assertion  Performed!***
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: select bilue news
+INFO     root:utils.py:207 0 element visible: select bilue news
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+INFO     root:soft_assert.py:43 bilue NEWS Button should be visible: Assertion  Performed!***
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: select bilue kids
+INFO     root:utils.py:207 0 element visible: select bilue kids
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+INFO     root:soft_assert.py:43 bilue Kids Button should be visible: Assertion  Performed!***
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: select bilue me
+INFO     root:utils.py:207 0 element visible: select bilue me
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+INFO     root:soft_assert.py:43 bilue ME Button should be visible: Assertion  Performed!***
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: select bilue arts
+INFO     root:utils.py:207 0 element visible: select bilue arts
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+INFO     root:soft_assert.py:43 bilue ARTS Button should be visible: Assertion  Performed!***
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:207 0 element visible: //*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+INFO     root:soft_assert.py:43 bilue ARTS Button should be visible: Assertion  Performed!***
+ERROR    root:base_tests.py:71 TestMenuSideBar.test_001_menu_sidebar_sections_validation failed: Expected value: &#x27;Categories111&#x27; should match the actual value: &#x27;Categories&#x27;
+ERROR    root:base_tests.py:74 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestMenuSideBar.test_001_menu_sidebar_sections_validation_screenshot_2023_07_07-11_59_11.png&#x27;]<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_000_login</td>
+          <td class="col-duration">33.46</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_000_login</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log"> -------------------------------Captured log setup------------------------------- <br/>INFO     root:conftest.py:26 Config path: /Users/biluesparesydney8/Downloads/mobile-automation-tests/configs/config.ini
+INFO     root:conftest.py:27 Sections in config file: [&#x27;common info&#x27;, &#x27;iOS-iPhone14Pro-app&#x27;, &#x27;Android-Pixel3-app&#x27;, &#x27;Android-Pixel5-app&#x27;, &#x27;iOS-iPhone14-app&#x27;, &#x27;iOS-iPhone14Plus-app&#x27;]
+INFO     root:conftest.py:28 iOS devices: [&#x27;iOS-iPhone14Pro-app&#x27;, &#x27;iOS-iPhone14-app&#x27;, &#x27;iOS-iPhone14Plus-app&#x27;]
+INFO     root:read_properties.py:70  Setting Platform Name as : ios
+INFO     root:conftest.py:40 in setup
+INFO     root:conftest.py:42 Running Test on Mobile device: iOS-iPhone14Pro-app
+INFO     root:conftest.py:45 Screen size is:<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_menu_sidebar.py:19 *************** Test_000_Who&#x27;s Watching Screen *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: LOG IN TO WATCH
+INFO     root:utils.py:207 0 element visible: LOG IN TO WATCH
+INFO     root:utils.py:232 Clicked on element LOG IN TO WATCH
+INFO     root:base_ui.py:64 ***************LOG IN TO WATCH Button clicked
+INFO     root:utils.py:393 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:205 0 Checking for element Who’s watching?
+INFO     root:utils.py:205 1 Checking for element Who’s watching?
+WARNING  root:whos_watching_screens.py:233 Who&#x27;s Watching Title does not exist. Continue to Login...Element never became visible: accessibility id (Who’s watching?)
+INFO     root:base_ui.py:30 *************** verifying element visibility
+INFO     root:utils.py:393 Implicit Wait for 50
+INFO     root:base_ui.py:30 *************** verifying element visibility
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeButton[@name=&quot;LOG IN WITH EMAIL&quot;]
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeButton[@name=&quot;LOG IN WITH EMAIL&quot;]
+INFO     root:utils.py:207 0 element visible: //XCUIElementTypeButton[@name=&quot;LOG IN WITH EMAIL&quot;]
+INFO     root:utils.py:232 Clicked on element //XCUIElementTypeButton[@name=&quot;LOG IN WITH EMAIL&quot;]
+INFO     root:base_ui.py:64 ***************//XCUIElementTypeButton[@name=&quot;LOG IN WITH EMAIL&quot;] Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeOther[@name=&quot;Log in with email - bilue Account - bilue - Australian Broadcasting Corporation&quot;]/XCUIElementTypeTextField
+INFO     root:utils.py:207 0 element visible: //XCUIElementTypeOther[@name=&quot;Log in with email - bilue Account - bilue - Australian Broadcasting Corporation&quot;]/XCUIElementTypeTextField
+INFO     root:base_ui.py:73 ***************bilueinnovation.mobile+appium_automation@gmail.com Input Entered
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeOther[@name=&quot;Log in with email - bilue Account - bilue - Australian Broadcasting Corporation&quot;]/XCUIElementTypeSecureTextField
+INFO     root:utils.py:207 0 element visible: //XCUIElementTypeOther[@name=&quot;Log in with email - bilue Account - bilue - Australian Broadcasting Corporation&quot;]/XCUIElementTypeSecureTextField
+INFO     root:base_ui.py:73 ***************Appium11 Input Entered
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeButton[@name=&quot;LOG IN WITH EMAIL&quot;]
+INFO     root:utils.py:207 0 element visible: //XCUIElementTypeButton[@name=&quot;LOG IN WITH EMAIL&quot;]
+INFO     root:utils.py:232 Clicked on element //XCUIElementTypeButton[@name=&quot;LOG IN WITH EMAIL&quot;]
+INFO     root:base_ui.py:64 ***************//XCUIElementTypeButton[@name=&quot;LOG IN WITH EMAIL&quot;] Button clicked
+INFO     root:utils.py:393 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 5
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+INFO     root:utils.py:207 0 element visible: Who’s watching?
+INFO     root:base_ui.py:44 *************** Wait for element visible performed
+INFO     root:base_ui.py:30 *************** verifying element visibility
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+INFO     root:login.py:40 Login Successful!<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_002_menu_sidebar_your_bilue_app_validation</td>
+          <td class="col-duration">5.51</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_002_menu_sidebar_your_bilue_app_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_menu_sidebar.py:94 *************** Test_002_Menu Side Bar *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:207 0 element visible: //*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:232 Clicked on element //*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:base_ui.py:64 ***************//*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage Button clicked
+INFO     root:soft_assert.py:43 Expected value: &#x27;watch list&#x27; should match the actual value: &#x27;watch list&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select viewing history&#x27; should match the actual value: &#x27;select viewing history&#x27;: Assertion Equal Performed!***
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:207 0 element visible: //*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:232 Clicked on element //*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:base_ui.py:64 ***************//*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage Button clicked<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_003_menu_sidebar_categories_validation</td>
+          <td class="col-duration">23.08</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_003_menu_sidebar_categories_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_menu_sidebar.py:134 *************** Test_003_Menu Side Bar *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:207 0 element visible: //*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:232 Clicked on element //*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:base_ui.py:64 ***************//*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage Button clicked
+INFO     root:soft_assert.py:43 Expected value: &#x27;drama&#x27; should match the actual value: &#x27;drama&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;comedy and entertainment&#x27; should match the actual value: &#x27;comedy and entertainment&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;news and current affairs&#x27; should match the actual value: &#x27;news and current affairs&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;documentary&#x27; should match the actual value: &#x27;documentary&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;lifestyle&#x27; should match the actual value: &#x27;lifestyle&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;movies&#x27; should match the actual value: &#x27;movies&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;family&#x27; should match the actual value: &#x27;family&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;education&#x27; should match the actual value: &#x27;education&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;arts and culture&#x27; should match the actual value: &#x27;arts and culture&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;music&#x27; should match the actual value: &#x27;music&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;history&#x27; should match the actual value: &#x27;history&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;science&#x27; should match the actual value: &#x27;science&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;talk and interview&#x27; should match the actual value: &#x27;talk and interview&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;sport&#x27; should match the actual value: &#x27;sport&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;indigenous&#x27; should match the actual value: &#x27;indigenous&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;lgbtqia+&#x27; should match the actual value: &#x27;lgbtqia+&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;regional australia&#x27; should match the actual value: &#x27;regional australia&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;your australia&#x27; should match the actual value: &#x27;your australia&#x27;: Assertion Equal Performed!***
+INFO     root:utils.py:340 0 Scrolling up to check for the element //*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:207 0 element visible: //*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:232 Clicked on element //*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:base_ui.py:64 ***************//*[@name=&quot;Categories&quot;]/following-sibling::XCUIElementTypeImage Button clicked<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_004_menu_sidebar_support_validation</td>
+          <td class="col-duration">4.35</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_004_menu_sidebar_support_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_menu_sidebar.py:173 *************** Test_004_Menu Side Bar *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:207 0 element visible: //*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:232 Clicked on element //*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:base_ui.py:64 ***************//*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage Button clicked
+INFO     root:soft_assert.py:43 Expected value: &#x27;open FAQ&#x27; should match the actual value: &#x27;open FAQ&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;open contact us&#x27; should match the actual value: &#x27;open contact us&#x27;: Assertion Equal Performed!***
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:207 0 element visible: //*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:232 Clicked on element //*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:base_ui.py:64 ***************//*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage Button clicked<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_005_menu_sidebar_more_validation</td>
+          <td class="col-duration">3.00</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_005_menu_sidebar_more_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_menu_sidebar.py:196 *************** Test_005_Menu Side Bar *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: More
+INFO     root:utils.py:207 0 element visible: More
+INFO     root:utils.py:232 Clicked on element More
+INFO     root:base_ui.py:64 ***************More Button clicked
+INFO     root:soft_assert.py:43 Expected value: &#x27;open TV guide&#x27; should match the actual value: &#x27;open TV guide&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;open bilue&#x27; should match the actual value: &#x27;open bilue&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;open terms of use&#x27; should match the actual value: &#x27;open terms of use&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;open privacy&#x27; should match the actual value: &#x27;open privacy&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select follow us&#x27; should match the actual value: &#x27;select follow us&#x27;: Assertion Equal Performed!***<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_006_menu_sidebar_facebook_twitter_validation</td>
+          <td class="col-duration">3.06</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_006_menu_sidebar_facebook_twitter_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_menu_sidebar.py:219 *************** Test_006_Menu Side Bar *****************
+INFO     root:soft_assert.py:43 Expected value: &#x27;open in facebook&#x27; should match the actual value: &#x27;open in facebook&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;open in twitter&#x27; should match the actual value: &#x27;open in twitter&#x27;: Assertion Equal Performed!***
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:207 0 element visible: //*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:232 Clicked on element //*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:base_ui.py:64 ***************//*[@name=&quot;Support&quot;]/following-sibling::XCUIElementTypeImage Button clicked<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_007_kids_menu_sidebar_sections_validation</td>
+          <td class="col-duration">55.47</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_007_kids_menu_sidebar_sections_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_menu_sidebar.py:239 *************** Test_007_Menu Side Bar *****************
+INFO     root:utils.py:393 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:205 0 Checking for element Who’s watching?
+INFO     root:utils.py:205 1 Checking for element Who’s watching?
+WARNING  root:whos_watching_screens.py:233 Who&#x27;s Watching Title does not exist. Continue to Login...Element never became visible: accessibility id (Who’s watching?)
+INFO     root:base_ui.py:30 *************** verifying element visibility
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Close menu
+INFO     root:utils.py:207 0 element visible: Close menu
+INFO     root:utils.py:232 Clicked on element Close menu
+INFO     root:base_ui.py:64 ***************Close menu Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: loginButton
+INFO     root:utils.py:207 0 element visible: loginButton
+INFO     root:utils.py:232 Clicked on element loginButton
+INFO     root:base_ui.py:64 ***************loginButton Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Switch profile
+INFO     root:utils.py:207 0 element visible: Switch profile
+INFO     root:utils.py:232 Clicked on element Switch profile
+INFO     root:base_ui.py:64 ***************Switch profile Button clicked
+INFO     root:navigator.py:158 Navigated to Who&#x27;s Watching Screen!
+INFO     root:utils.py:393 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+INFO     root:utils.py:207 0 element visible: Who’s watching?
+INFO     root:base_ui.py:44 *************** Wait for element visible performed
+INFO     root:base_ui.py:30 *************** verifying element visibility
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Create a new profile
+INFO     root:utils.py:207 0 element visible: Create a new profile
+INFO     root:utils.py:232 Clicked on element Create a new profile
+INFO     root:base_ui.py:64 ***************Create a new profile Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeTextField[@name=&quot;Your name&quot;]
+INFO     root:utils.py:207 0 element visible: //XCUIElementTypeTextField[@name=&quot;Your name&quot;]
+INFO     root:base_ui.py:73 ***************Auto_child_created Input Entered
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Return
+INFO     root:utils.py:207 0 element visible: Return
+INFO     root:utils.py:232 Clicked on element Return
+INFO     root:base_ui.py:64 ***************Return Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeSwitch[@name=&quot;Is this a child profile?&quot;]
+INFO     root:utils.py:207 0 element visible: //XCUIElementTypeSwitch[@name=&quot;Is this a child profile?&quot;]
+WARNING  root:utils.py:243 x :340 location[&#x27;x&#x27;] :16 width :361 y :317 location[&#x27;y&#x27;] :301 height :32
+INFO     root:utils.py:248 Tapped on element //XCUIElementTypeSwitch[@name=&quot;Is this a child profile?&quot;]
+INFO     root:utils.py:511 Toggle is set to :True::0 for the locator ://XCUIElementTypeSwitch[@name=&quot;Is this a child profile?&quot;]
+INFO     root:base_ui.py:99 *************** Tap Toggle Switch performed to:True
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: NEXT
+INFO     root:utils.py:207 0 element visible: NEXT
+INFO     root:utils.py:232 Clicked on element NEXT
+INFO     root:base_ui.py:64 ***************NEXT Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeCell[@name=&quot;bandit image&quot;]/XCUIElementTypeOther/XCUIElementTypeImage
+INFO     root:utils.py:207 0 element visible: //XCUIElementTypeCell[@name=&quot;bandit image&quot;]/XCUIElementTypeOther/XCUIElementTypeImage
+INFO     root:utils.py:232 Clicked on element //XCUIElementTypeCell[@name=&quot;bandit image&quot;]/XCUIElementTypeOther/XCUIElementTypeImage
+INFO     root:base_ui.py:64 ***************//XCUIElementTypeCell[@name=&quot;bandit image&quot;]/XCUIElementTypeOther/XCUIElementTypeImage Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeTextField[contains(@name,&quot;year of birth&quot;)]
+INFO     root:utils.py:207 0 element visible: //XCUIElementTypeTextField[contains(@name,&quot;year of birth&quot;)]
+INFO     root:base_ui.py:73 ***************2022 Input Entered
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: NEXT
+INFO     root:utils.py:207 0 element visible: NEXT
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: NEXT
+INFO     root:utils.py:207 0 element visible: NEXT
+INFO     root:utils.py:232 Clicked on element NEXT
+INFO     root:base_ui.py:64 ***************NEXT Button clicked
+INFO     root:utils.py:496 Toggle Switch is Already ON!
+INFO     root:utils.py:511 Toggle is set to :True::1 for the locator ://XCUIElementTypeSwitch[contains(@name,&quot;bilue Kids, Shows for preschool children to explore&quot;)]
+INFO     root:base_ui.py:99 *************** Tap Toggle Switch performed to:True
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeSwitch[contains(@name,&quot;bilue ME, Shows to entertain school aged children&quot;)]
+INFO     root:utils.py:207 0 element visible: //XCUIElementTypeSwitch[contains(@name,&quot;bilue ME, Shows to entertain school aged children&quot;)]
+WARNING  root:utils.py:243 x :340 location[&#x27;x&#x27;] :16 width :361 y :412 location[&#x27;y&#x27;] :372 height :81
+INFO     root:utils.py:248 Tapped on element //XCUIElementTypeSwitch[contains(@name,&quot;bilue ME, Shows to entertain school aged children&quot;)]
+INFO     root:utils.py:511 Toggle is set to :True::0 for the locator ://XCUIElementTypeSwitch[contains(@name,&quot;bilue ME, Shows to entertain school aged children&quot;)]
+INFO     root:base_ui.py:99 *************** Tap Toggle Switch performed to:True
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: NEXT
+INFO     root:utils.py:207 0 element visible: NEXT
+INFO     root:utils.py:232 Clicked on element NEXT
+INFO     root:base_ui.py:64 ***************NEXT Button clicked
+INFO     root:profile.py:78 New Sub Profile Created! Name: Auto_child_created with image: bandit; child: True
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[contains(@name, &quot;Auto_child_created&quot;)]
+INFO     root:utils.py:207 0 element visible: //*[contains(@name, &quot;Auto_child_created&quot;)]
+INFO     root:utils.py:232 Clicked on element //*[contains(@name, &quot;Auto_child_created&quot;)]
+INFO     root:base_ui.py:64 ***************//*[contains(@name, &quot;Auto_child_created&quot;)] Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: mainMenuButton
+INFO     root:utils.py:207 0 element visible: mainMenuButton
+INFO     root:utils.py:232 Clicked on element mainMenuButton
+INFO     root:base_ui.py:64 ***************mainMenuButton Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Close menu
+INFO     root:utils.py:207 0 element visible: Close menu
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+INFO     root:soft_assert.py:43 Close Menu Bar Button should be visible: Assertion  Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select bilue kids&#x27; should match the actual value: &#x27;select bilue kids&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select bilue me&#x27; should match the actual value: &#x27;select bilue me&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;Your bilue app&#x27; should match the actual value: &#x27;Your bilue app&#x27;: Assertion Equal Performed!***<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_008_kids_menu_sidebar_your_bilue_app_validation</td>
+          <td class="col-duration">1.36</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_008_kids_menu_sidebar_your_bilue_app_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_menu_sidebar.py:273 *************** Test_008_Menu Side Bar *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:207 0 element visible: //*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:utils.py:232 Clicked on element //*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage
+INFO     root:base_ui.py:64 ***************//*[@name=&quot;Your bilue app&quot;]/following-sibling::XCUIElementTypeImage Button clicked
+INFO     root:soft_assert.py:43 Expected value: &#x27;watch list&#x27; should match the actual value: &#x27;watch list&#x27;: Assertion Equal Performed!***
+INFO     root:soft_assert.py:43 Expected value: &#x27;select viewing history&#x27; should match the actual value: &#x27;select viewing history&#x27;: Assertion Equal Performed!***<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_0000_delete_all_sub_profiles</td>
+          <td class="col-duration">40.97</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_menu_sidebar.py::TestMenuSideBar::test_0000_delete_all_sub_profiles</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_menu_sidebar.py:302 *************** Test_0000_Who&#x27;s Watching Screen *****************
+INFO     root:utils.py:393 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:205 0 Checking for element Who’s watching?
+INFO     root:utils.py:205 1 Checking for element Who’s watching?
+WARNING  root:whos_watching_screens.py:233 Who&#x27;s Watching Title does not exist. Continue to Login...Element never became visible: accessibility id (Who’s watching?)
+INFO     root:base_ui.py:30 *************** verifying element visibility
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Close menu
+INFO     root:utils.py:207 0 element visible: Close menu
+INFO     root:utils.py:232 Clicked on element Close menu
+INFO     root:base_ui.py:64 ***************Close menu Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: loginButton
+INFO     root:utils.py:207 0 element visible: loginButton
+INFO     root:utils.py:232 Clicked on element loginButton
+INFO     root:base_ui.py:64 ***************loginButton Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Switch profile
+INFO     root:utils.py:207 0 element visible: Switch profile
+INFO     root:utils.py:232 Clicked on element Switch profile
+INFO     root:base_ui.py:64 ***************Switch profile Button clicked
+INFO     root:navigator.py:158 Navigated to Who&#x27;s Watching Screen!
+INFO     root:utils.py:393 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+INFO     root:utils.py:207 0 element visible: Who’s watching?
+INFO     root:base_ui.py:44 *************** Wait for element visible performed
+INFO     root:base_ui.py:30 *************** verifying element visibility
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+WARNING  root:profile.py:195 Total number of Sub profiles in Edit section: 2
+INFO     root:utils.py:393 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+INFO     root:utils.py:207 0 element visible: Who’s watching?
+INFO     root:base_ui.py:44 *************** Wait for element visible performed
+INFO     root:base_ui.py:30 *************** verifying element visibility
+INFO     root:utils.py:165 Verified Element Present: Who’s watching?
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: EDIT PROFILES
+INFO     root:utils.py:207 0 element visible: EDIT PROFILES
+INFO     root:utils.py:232 Clicked on element EDIT PROFILES
+INFO     root:base_ui.py:64 ***************EDIT PROFILES Button clicked
+INFO     root:utils.py:228 Clicked on element &lt;appium.webdriver.webelement.WebElement (session=&quot;7315dbfa-829e-4d84-981f-b831cd4e69f4&quot;, element=&quot;2F100000-0000-0000-333A-000000000000&quot;)&gt;
+INFO     root:base_ui.py:66 ***************Element clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: //XCUIElementTypeTextField[@name=&quot;Your name&quot;]
+INFO     root:utils.py:207 0 element visible: //XCUIElementTypeTextField[@name=&quot;Your name&quot;]
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: DELETE PROFILE
+INFO     root:utils.py:207 0 element visible: DELETE PROFILE
+INFO     root:utils.py:232 Clicked on element DELETE PROFILE
+INFO     root:base_ui.py:64 ***************DELETE PROFILE Button clicked
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:205 0 Checking for element DONE
+INFO     root:utils.py:205 1 Checking for element DONE
+WARNING  root:base_ui.py:52 *************** Element Not visible: Element never became visible: accessibility id (DONE)
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:205 0 Checking for element DONE
+INFO     root:utils.py:205 1 Checking for element DONE
+WARNING  root:base_ui.py:52 *************** Element Not visible: Element never became visible: accessibility id (DONE)
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: Delete
+INFO     root:utils.py:207 0 element visible: Delete
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:205 0 Checking for element Delete
+INFO     root:utils.py:205 1 Checking for element Delete
+WARNING  root:profile.py:173 Delete Button Presence Error: Element never became visible: accessibility id (Delete)
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: DONE
+INFO     root:utils.py:207 0 element visible: DONE
+INFO     root:base_ui.py:49 *************** Wait for element visible performed
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:165 Verified Element Present: DONE
+INFO     root:utils.py:207 0 element visible: DONE
+INFO     root:utils.py:232 Clicked on element DONE
+INFO     root:base_ui.py:64 ***************DONE Button clicked
+INFO     root:profile.py:177 Sub Profile Deleted! Name: &lt;appium.webdriver.webelement.WebElement (session=&quot;7315dbfa-829e-4d84-981f-b831cd4e69f4&quot;, element=&quot;2F100000-0000-0000-333A-000000000000&quot;)&gt;
+WARNING  root:profile.py:195 Total number of Sub profiles in Edit section: 1<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:conftest.py:48 In tearDown<br/></div></td></tr></tbody></table></body></html>

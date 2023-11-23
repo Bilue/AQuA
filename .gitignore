@@ -1,0 +1,6 @@
+*.pyc
+*.idea
+**/.idea/workspace.xml
+**/.idea/tasks.xml
+*.html
+*.pytest_cache

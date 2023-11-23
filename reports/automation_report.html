@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>automation_report.html</title>
+    <link href="assets/style.css" rel="stylesheet" type="text/css"/></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) { // eslint-disable-line no-redeclare
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function findAll(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sortColumn(elem) {
+    toggleSortStates(elem);
+    const colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    let key;
+    if (elem.classList.contains('result')) {
+        key = keyResult;
+    } else if (elem.classList.contains('links')) {
+        key = keyLink;
+    } else {
+        key = keyAlpha;
+    }
+    sortTable(elem, key(colIndex));
+}
+
+function showAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(showExtras);
+}
+
+function hideAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(hideExtras);
+}
+
+function showExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.remove('collapsed');
+    expandcollapse.classList.remove('expander');
+    expandcollapse.classList.add('collapser');
+}
+
+function hideExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.add('collapsed');
+    expandcollapse.classList.remove('collapser');
+    expandcollapse.classList.add('expander');
+}
+
+function showFilters() {
+    let visibleString = getQueryParameter('visible') || 'all';
+    visibleString = visibleString.toLowerCase();
+    const checkedItems = visibleString.split(',');
+
+    const filterItems = document.getElementsByClassName('filter');
+    for (let i = 0; i < filterItems.length; i++) {
+        filterItems[i].hidden = false;
+
+        if (visibleString != 'all') {
+            filterItems[i].checked = checkedItems.includes(filterItems[i].getAttribute('data-test-result'));
+            filterTable(filterItems[i]);
+        }
+    }
+}
+
+function addCollapse() {
+    // Add links for show/hide all
+    const resulttable = find('table#results-table');
+    const showhideall = document.createElement('p');
+    showhideall.innerHTML = '<a href="javascript:showAllExtras()">Show all details</a> / ' +
+                            '<a href="javascript:hideAllExtras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    findAll('.col-result').forEach(function(elem) {
+        const collapsed = getQueryParameter('collapsed') || 'Passed';
+        const extras = elem.parentNode.nextElementSibling;
+        const expandcollapse = document.createElement('span');
+        if (extras.classList.contains('collapsed')) {
+            expandcollapse.classList.add('expander');
+        } else if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add('collapsed');
+            expandcollapse.classList.add('expander');
+        } else {
+            expandcollapse.classList.add('collapser');
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener('click', function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains('collapsed')) {
+                showExtras(event.currentTarget);
+            } else {
+                hideExtras(event.currentTarget);
+            }
+        });
+    });
+}
+
+function getQueryParameter(name) {
+    const match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () { // eslint-disable-line no-unused-vars
+    resetSortHeaders();
+
+    addCollapse();
+
+    showFilters();
+
+    sortColumn(find('.initial-sort'));
+
+    findAll('.sortable').forEach(function(elem) {
+        elem.addEventListener('click',
+            function() {
+                sortColumn(elem);
+            }, false);
+    });
+}
+
+function sortTable(clicked, keyFunc) {
+    const rows = findAll('.results-table-row');
+    const reversed = !clicked.classList.contains('asc');
+    const sortedRows = sort(rows, keyFunc, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    const thead = document.getElementById('results-table-head');
+    document.getElementById('results-table').remove();
+    const parent = document.createElement('table');
+    parent.id = 'results-table';
+    parent.appendChild(thead);
+    sortedRows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName('BODY')[0].appendChild(parent);
+}
+
+function sort(items, keyFunc, reversed) {
+    const sortArray = items.map(function(item, i) {
+        return [keyFunc(item), i];
+    });
+
+    sortArray.sort(function(a, b) {
+        const keyA = a[0];
+        const keyB = b[0];
+
+        if (keyA == keyB) return 0;
+
+        if (reversed) {
+            return keyA < keyB ? 1 : -1;
+        } else {
+            return keyA > keyB ? 1 : -1;
+        }
+    });
+
+    return sortArray.map(function(item) {
+        const index = item[1];
+        return items[index];
+    });
+}
+
+function keyAlpha(colIndex) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[colIndex].firstChild.data.toLowerCase();
+    };
+}
+
+function keyLink(colIndex) {
+    return function(elem) {
+        const dataCell = elem.childNodes[1].childNodes[colIndex].firstChild;
+        return dataCell == null ? '' : dataCell.innerText.toLowerCase();
+    };
+}
+
+function keyResult(colIndex) {
+    return function(elem) {
+        const strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+            'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[colIndex].firstChild.data);
+    };
+}
+
+function resetSortHeaders() {
+    findAll('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    findAll('.sortable').forEach(function(elem) {
+        const icon = document.createElement('div');
+        icon.className = 'sort-icon';
+        icon.textContent = 'vvv';
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove('desc', 'active');
+        elem.classList.add('asc', 'inactive');
+    });
+}
+
+function toggleSortStates(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        resetSortHeaders();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function isAllRowsHidden(value) {
+    return value.hidden == false;
+}
+
+function filterTable(elem) { // eslint-disable-line no-unused-vars
+    const outcomeAtt = 'data-test-result';
+    const outcome = elem.getAttribute(outcomeAtt);
+    const classOutcome = outcome + ' results-table-row';
+    const outcomeRows = document.getElementsByClassName(classOutcome);
+
+    for(let i = 0; i < outcomeRows.length; i++){
+        outcomeRows[i].hidden = !elem.checked;
+    }
+
+    const rows = findAll('.results-table-row').filter(isAllRowsHidden);
+    const allRowsHidden = rows.length == 0 ? true : false;
+    const notFoundMessage = document.getElementById('not-found-message');
+    notFoundMessage.hidden = !allRowsHidden;
+}
+</script>
+    <h1>automation_report.html</h1>
+    <p>Report generated on 16-Jun-2023 at 13:28:55 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.2.0</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Project Name</td>
+        <td>bilue app App</td></tr>
+      <tr>
+        <td>Python Version</td>
+        <td>3.11.1</td></tr>
+      <tr>
+        <td>User Name</td>
+        <td>Gaurav Purwar</td></tr></table>
+    <h2>Summary</h2>
+    <h1>Project Name: bilue - app App</h1>
+    <p>10 tests ran in 308.57 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">0 passed</span>, <input checked="true" class="filter" data-test-result="skipped" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">5 skipped</span>, <input checked="true" class="filter" data-test-result="failed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">10 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Description: app App for iOS and Android Smoke Test Suite</h2>
+    <h2>Status : Completed</h2>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable" col="duration">Duration</th>
+          <th class="sortable links" col="links">Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_000_login</td>
+          <td class="col-duration">23.63</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png" width="300"/></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_000_login</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10fe858d0&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_000_login(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_000_Who&#x27;s Watching Screen *****************&quot;)<br/>    <br/>            # Start<br/>&gt;           self.app_login.clickOnLoginToWatchBtn()<br/><br/>tests/bilue_app/test_watchlist.py:26: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;page_objects.bilue_app.app_login_screen.app_Login_Screen object at 0x10fed7e10&gt;<br/><br/>    def clickOnLoginToWatchBtn(self):<br/>&gt;       self.click(self.log_in_to_watch_btn)<br/><br/>page_objects/bilue_app/app_login_screen.py:62: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;page_objects.bilue_app.app_login_screen.app_Login_Screen object at 0x10fed7e10&gt;, locator = (&#x27;id&#x27;, &#x27;au.net.bilue.app:id/buttonGetStarted&#x27;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>&gt;       self.utils.click(locator, element)<br/><br/>page_objects/bilue_app/base_ui.py:62: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x10fef7310&gt;, locator = (&#x27;id&#x27;, &#x27;au.net.bilue.app:id/buttonGetStarted&#x27;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>        if element is not None:<br/>            element.click()<br/>            self.logger.info(f&quot;Clicked on element {str(element)}&quot;)<br/>        elif locator is not None:<br/>&gt;           element = self.wait_visible(locator)<br/><br/>utilities/utils.py:231: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x10fef7310&gt;, locator = (&#x27;id&#x27;, &#x27;au.net.bilue.app:id/buttonGetStarted&#x27;), timeout = 20<br/><br/>    def wait_visible(self, locator, timeout=None):<br/>        &quot;&quot;&quot;<br/>        This is a Python function that waits for an element to become visible on a mobile app&#x27;s user interface using<br/>        Appium. The element&#x27;s location is specified by the locator argument, which is a tuple containing two values:<br/>        the method for finding the element (e.g., accessibility_id, class_name, etc.) and the search criteria (e.g.,<br/>        &#x27;button1&#x27;, &#x27;input_field&#x27;, etc.).<br/>    <br/>        The function repeatedly calls the is_visible() method, which checks if the element is currently visible on<br/>        the screen, until the element becomes visible or the timeout value is reached. The timeout value depends on<br/>        the platform being used, either 2 seconds for iOS or 1000 for Android. If the element is never visible,<br/>        the function raises an exception indicating that the element never became visible, including the method and<br/>        search criteria used.<br/>    <br/>        :param timeout:<br/>        :param locator:<br/>        :return:<br/>        &quot;&quot;&quot;<br/>        i = 0<br/>        platform_name = ReadProperties.getPlatformName()<br/>        if timeout is None:<br/>            if platform_name == &#x27;ios&#x27;:<br/>                timeout = ReadProperties.getiOSWaitTime()<br/>            else:<br/>                timeout = ReadProperties.getAndroidWaitTime()<br/>    <br/>        self.logger.warning(&quot; Wait Timeout Cycle is: &quot; + str(timeout))<br/>    <br/>        while i != timeout:<br/>            try:<br/>                if not self.is_visible(locator):<br/>                    self.logger.info(str(i) + &quot; Checking for element &quot; + locator[1])<br/>                else:<br/>                    self.logger.info(str(i) + &quot; element visible: &quot; + locator[1])<br/>                    return self.get_element(locator)<br/>            except NoSuchElementException as e:<br/>                self.logger.error(&quot;Error occurred while finding element: %s&quot;, str(e))<br/>                sleep(0.1)<br/>            i += 1<br/>&gt;       raise Exception(&#x27;Element never became visible: %s (%s)&#x27; % (locator[0], locator[1]))<br/><span class="error">E       Exception: Element never became visible: id (au.net.bilue.app:id/buttonGetStarted)</span><br/><br/>utilities/utils.py:213: Exception<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10fe858d0&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_000_login(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_000_Who&#x27;s Watching Screen *****************&quot;)<br/>    <br/>            # Start<br/>            self.app_login.clickOnLoginToWatchBtn()<br/>            # Navigate to WWS<br/>            if not self.whos_watching_screen.verifyTitleVisible():<br/>                self.loginFlow.login_steps(App, self.email, self.password)<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_watchlist.py:32: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10fe858d0&gt;, app = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/>e = Exception(&#x27;Element never became visible: id (au.net.bilue.app:id/buttonGetStarted)&#x27;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestWatchlist.test_000_login failed: Element never became visible: id (au.net.bilue.app:id/buttonGetStarted)</span><br/><br/>tests/bilue_app/base_tests.py:73: Exception<br/> -------------------------------Captured log setup------------------------------- <br/>INFO     root:conftest.py:21 Config path: /Users/biluesparesydney8/Downloads/mobile-automation-tests/Configs/config.ini
+INFO     root:conftest.py:22 Sections in config file: [&#x27;common info&#x27;, &#x27;iOS-iPhone14Pro&#x27;, &#x27;Android-Pixel3&#x27;, &#x27;Android-Pixel5&#x27;, &#x27;iOS-iPhone14&#x27;, &#x27;iOS-iPhone14Plus&#x27;]
+INFO     root:conftest.py:23 iOS devices: [&#x27;iOS-iPhone14Pro&#x27;, &#x27;iOS-iPhone14&#x27;, &#x27;iOS-iPhone14Plus&#x27;]
+INFO     root:read_properties.py:82  Setting Platform Name as : Android
+INFO     root:base_tests.py:83 in setup
+INFO     root:base_tests.py:85 Running Test on Mobile device: Android-Pixel5
+INFO     root:base_tests.py:88 Screen size is:<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_watchlist.py:23 *************** Test_000_Who&#x27;s Watching Screen *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 20
+INFO     root:utils.py:205 0 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 1 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 2 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 3 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 4 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 5 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 6 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 7 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 8 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 9 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 10 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 11 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 12 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 13 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 14 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 15 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 16 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 17 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 18 Checking for element au.net.bilue.app:id/buttonGetStarted
+INFO     root:utils.py:205 19 Checking for element au.net.bilue.app:id/buttonGetStarted
+ERROR    root:base_tests.py:69 TestWatchlist.test_000_login failed: Element never became visible: id (au.net.bilue.app:id/buttonGetStarted)
+ERROR    root:base_tests.py:72 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png&#x27;]<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_001_watchlist_content_validation</td>
+          <td class="col-duration">7.79</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_001_watchlist_content_validation_screenshot_2023_06_16-13_24_17.png" width="300"/></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_001_watchlist_content_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10fe3ae90&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_001_watchlist_content_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_001_Watchlist Screen *****************&quot;)<br/>    <br/>            # Watchlist<br/>&gt;           self.profile.delete_all_sub_profiles_except_one(App)<br/><br/>tests/bilue_app/test_watchlist.py:41: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;ux_flows.bilue_app.profile.Profile object at 0x1101a0250&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def delete_all_sub_profiles_except_one(self, App: Application):<br/>        &quot;&quot;&quot;<br/>        This function deletes all sub-profiles except one on the Who&#x27;s Watching screen. It first verifies the title on the screen and then loops through all sub-profiles to delete them one by one until only one sub-profile remains.<br/>        :param App:<br/>        :return:<br/>        &quot;&quot;&quot;<br/>    <br/>        whosWatchingScreen = WhosWatchingScreens(app=App)<br/>    <br/>        if not whosWatchingScreen.verifyTitleVisible(2):<br/>&gt;           raise WWSTitleNotFoundError(&quot;Who&#x27;s Watching screen Title Was Not Found!&quot;)<br/><span class="error">E           ux_flows.bilue_app.profile.WWSTitleNotFoundError: Who&#x27;s Watching screen Title Was Not Found!</span><br/><br/>ux_flows/bilue_app/profile.py:188: WWSTitleNotFoundError<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10fe3ae90&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_001_watchlist_content_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_001_Watchlist Screen *****************&quot;)<br/>    <br/>            # Watchlist<br/>            self.profile.delete_all_sub_profiles_except_one(App)<br/>            self.profile.create_new_sub_profile(App, self.new_sub_profile_name, self.new_sub_profile_picture_image_name)<br/>            self.whos_watching_screen.click(self.whos_watching_screen.subprofile_btn_by_name(self.new_sub_profile_name))<br/>            self.home_screen.click(self.home_screen.main_menu_btn)<br/>            if ReadProperties.getPlatformName() == &#x27;ios&#x27;:<br/>                self.watchlist_screen.click(self.watchlist_screen.your_bilue_app_side_bar_drop_down_btn)<br/>            elif ReadProperties.getPlatformName() == &#x27;Android&#x27;:<br/>                if not self.watchlist_screen.is_visible_after_wait(<br/>                        self.watchlist_screen.your_bilue_app_side_bar_drop_down_btn, 2):<br/>                    self.watchlist_screen.click(self.watchlist_screen.categories_side_bar_drop_down_btn)<br/>    <br/>                if not self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_watchlist_side_bar_btn, 2):<br/>                    self.watchlist_screen.click(self.watchlist_screen.your_bilue_app_side_bar_drop_down_btn)<br/>    <br/>            self.soft_assert(<br/>                self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_watchlist_side_bar_btn),<br/>                &quot;Watch List Side Bar Button on Side Bar Visible&quot;)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.vh_side_bar_btn),<br/>                             &quot;Viewing History Side Bar Button on Side Bar Visible&quot;)<br/>            self.watchlist_screen.click(self.watchlist_screen.wl_watchlist_side_bar_btn)<br/>    <br/>            self.logger.info(&quot;Navigated to Watchlist Screen!&quot;)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_your_app_title),<br/>                             &quot;Title on Watch List Screen Visible&quot;)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_watchlist_tab),<br/>                             &quot;Watch List Tab Visible&quot;)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_viewing_history_tab),<br/>                             &quot;Viewing History Tab Visible&quot;)<br/>    <br/>            if ReadProperties.getPlatformName() == &#x27;ios&#x27;:<br/>                self.soft_assert.assert_equal(<br/>                    self.watchlist_screen.get_attribute(self.watchlist_screen.wl_your_watch_list_is_empty_txt, &quot;value&quot;),<br/>                    &quot;Your watch list is empty&quot;,<br/>                    &quot;Watch List Empty Text Matched with Actual Value &quot; + self.watchlist_screen.get_attribute(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_txt,<br/>                        &quot;value&quot;))<br/>                self.soft_assert(<br/>                    self.watchlist_screen.is_visible_after_wait(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt),<br/>                    &quot;Watch List Empty Sub Text Visible&quot;)<br/>                self.soft_assert.assert_equal(<br/>                    self.watchlist_screen.get_attribute(self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt,<br/>                                                        &quot;value&quot;),<br/>                    &quot;You can add shows to your watch list by tapping the add to watch list icon on any program page&quot;,<br/>                    &quot;Watch List Empty Sub Text Matched with Actual Value&quot; + self.watchlist_screen.get_attribute(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt,<br/>                        &quot;value&quot;))<br/>    <br/>            elif ReadProperties.getPlatformName() == &#x27;Android&#x27;:<br/>                self.soft_assert.assert_equal(<br/>                    self.watchlist_screen.get_attribute(self.watchlist_screen.wl_your_watch_list_is_empty_txt, &quot;text&quot;),<br/>                    &quot;Your Watchlist is empty&quot;,<br/>                    &quot;Watch List Empty Text Matched with Actual Value &quot; + self.watchlist_screen.get_attribute(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_txt,<br/>                        &quot;text&quot;))<br/>                self.soft_assert(<br/>                    self.watchlist_screen.is_visible_after_wait(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt),<br/>                    &quot;Watch List Empty Sub Text Visible&quot;)<br/>                self.soft_assert.assert_equal(<br/>                    self.watchlist_screen.get_attribute(self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt,<br/>                                                        &quot;text&quot;),<br/>                    &quot;You can add shows to your Watchlist by tapping the ‘Add to Watchlist’ icon on any program page.&quot;,<br/>                    &quot;Watch List Empty Sub Text Matched with Actual Value&quot; + self.watchlist_screen.get_attribute(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt,<br/>                        &quot;text&quot;))  # You can add shows to your Watchlist by tapping the ‘Add to Watchlist’ icon on any program page.<br/>    <br/>            self.soft_assert.assert_all()<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_watchlist.py:111: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10fe3ae90&gt;, app = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/>e = WWSTitleNotFoundError(&quot;Who&#x27;s Watching screen Title Was Not Found!&quot;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestWatchlist.test_001_watchlist_content_validation failed: Who&#x27;s Watching screen Title Was Not Found!</span><br/><br/>tests/bilue_app/base_tests.py:73: Exception<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_watchlist.py:38 *************** Test_001_Watchlist Screen *****************
+INFO     root:utils.py:391 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:205 0 Checking for element //*[contains(@text,&quot;watching?&quot;)]
+INFO     root:utils.py:205 1 Checking for element //*[contains(@text,&quot;watching?&quot;)]
+WARNING  root:whos_watching_screens.py:229 Who&#x27;s Watching Title does not exist. Continue to Login...Element never became visible: xpath (//*[contains(@text,&quot;watching?&quot;)])
+INFO     root:base_ui.py:30 *************** verifying element visibility
+ERROR    root:base_tests.py:69 TestWatchlist.test_001_watchlist_content_validation failed: Who&#x27;s Watching screen Title Was Not Found!
+ERROR    root:base_tests.py:72 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_001_watchlist_content_validation_screenshot_2023_06_16-13_24_17.png&#x27;]<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_002_watchlist_to_vh_tab_content_validation</td>
+          <td class="col-duration">43.94</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_002_watchlist_to_vh_tab_content_validation_screenshot_2023_06_16-13_25_01.png" width="300"/></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_002_watchlist_to_vh_tab_content_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10fea9bd0&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_002_watchlist_to_vh_tab_content_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_002_Watchlist Screen *****************&quot;)<br/>    <br/>            # Viewing History<br/>&gt;           self.watchlist_screen.click(self.watchlist_screen.wl_viewing_history_tab)<br/><br/>tests/bilue_app/test_watchlist.py:120: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;page_objects.bilue_app.watchlist_screen.WatchlistScreen object at 0x10feb70d0&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[@text=&#x27;Viewing History&#x27;]&quot;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>&gt;       self.utils.click(locator, element)<br/><br/>page_objects/bilue_app/base_ui.py:62: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x10feb6950&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[@text=&#x27;Viewing History&#x27;]&quot;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>        if element is not None:<br/>            element.click()<br/>            self.logger.info(f&quot;Clicked on element {str(element)}&quot;)<br/>        elif locator is not None:<br/>&gt;           element = self.wait_visible(locator)<br/><br/>utilities/utils.py:231: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x10feb6950&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[@text=&#x27;Viewing History&#x27;]&quot;), timeout = 20<br/><br/>    def wait_visible(self, locator, timeout=None):<br/>        &quot;&quot;&quot;<br/>        This is a Python function that waits for an element to become visible on a mobile app&#x27;s user interface using<br/>        Appium. The element&#x27;s location is specified by the locator argument, which is a tuple containing two values:<br/>        the method for finding the element (e.g., accessibility_id, class_name, etc.) and the search criteria (e.g.,<br/>        &#x27;button1&#x27;, &#x27;input_field&#x27;, etc.).<br/>    <br/>        The function repeatedly calls the is_visible() method, which checks if the element is currently visible on<br/>        the screen, until the element becomes visible or the timeout value is reached. The timeout value depends on<br/>        the platform being used, either 2 seconds for iOS or 1000 for Android. If the element is never visible,<br/>        the function raises an exception indicating that the element never became visible, including the method and<br/>        search criteria used.<br/>    <br/>        :param timeout:<br/>        :param locator:<br/>        :return:<br/>        &quot;&quot;&quot;<br/>        i = 0<br/>        platform_name = ReadProperties.getPlatformName()<br/>        if timeout is None:<br/>            if platform_name == &#x27;ios&#x27;:<br/>                timeout = ReadProperties.getiOSWaitTime()<br/>            else:<br/>                timeout = ReadProperties.getAndroidWaitTime()<br/>    <br/>        self.logger.warning(&quot; Wait Timeout Cycle is: &quot; + str(timeout))<br/>    <br/>        while i != timeout:<br/>            try:<br/>                if not self.is_visible(locator):<br/>                    self.logger.info(str(i) + &quot; Checking for element &quot; + locator[1])<br/>                else:<br/>                    self.logger.info(str(i) + &quot; element visible: &quot; + locator[1])<br/>                    return self.get_element(locator)<br/>            except NoSuchElementException as e:<br/>                self.logger.error(&quot;Error occurred while finding element: %s&quot;, str(e))<br/>                sleep(0.1)<br/>            i += 1<br/>&gt;       raise Exception(&#x27;Element never became visible: %s (%s)&#x27; % (locator[0], locator[1]))<br/><span class="error">E       Exception: Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])</span><br/><br/>utilities/utils.py:213: Exception<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10fea9bd0&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_002_watchlist_to_vh_tab_content_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_002_Watchlist Screen *****************&quot;)<br/>    <br/>            # Viewing History<br/>            self.watchlist_screen.click(self.watchlist_screen.wl_viewing_history_tab)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(<br/>                self.watchlist_screen.wl_vh_your_viewing_history_is_empty_txt),<br/>                &quot;Viewing History Empty Text Visible&quot;)<br/>            self.navigator.go_to_wws(App)<br/>            self.soft_assert.assert_all()<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_watchlist.py:128: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10fea9bd0&gt;, app = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/>e = Exception(&quot;Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])&quot;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestWatchlist.test_002_watchlist_to_vh_tab_content_validation failed: Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])</span><br/><br/>tests/bilue_app/base_tests.py:73: Exception<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_watchlist.py:117 *************** Test_002_Watchlist Screen *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 20
+INFO     root:utils.py:205 0 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 1 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 2 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 3 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 4 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 5 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 6 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 7 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 8 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 9 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 10 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 11 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 12 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 13 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 14 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 15 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 16 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 17 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 18 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 19 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+ERROR    root:base_tests.py:69 TestWatchlist.test_002_watchlist_to_vh_tab_content_validation failed: Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])
+ERROR    root:base_tests.py:72 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_001_watchlist_content_validation_screenshot_2023_06_16-13_24_17.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_002_watchlist_to_vh_tab_content_validation_screenshot_2023_06_16-13_25_01.png&#x27;]<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_003_watchlist_shows_list_validation</td>
+          <td class="col-duration">7.04</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_003_watchlist_shows_list_validation_screenshot_2023_06_16-13_25_08.png" width="300"/></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_003_watchlist_shows_list_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feaa350&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_003_watchlist_shows_list_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_003_Watchlist Screen *****************&quot;)<br/>    <br/>            # wws screen<br/>&gt;           self.navigator.go_wws_to_watchlist(App, &quot;&quot;, True)<br/><br/>tests/bilue_app/test_watchlist.py:137: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;ux_flows.bilue_app.navigator.Navigator object at 0x110095110&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;, profile_name = &#x27;&#x27;, main_profile = True<br/><br/>    def go_wws_to_watchlist(self, App: Application, profile_name: str, main_profile: bool):<br/>        whosWatchingScreen = WhosWatchingScreens(app=App)<br/>    <br/>        if not whosWatchingScreen.verifyTitleVisible(2):<br/>&gt;           raise WWSTitleNotFoundError(&quot;Who&#x27;s Watching screen Title Was Not Found!&quot;)<br/><span class="error">E           ux_flows.bilue_app.navigator.WWSTitleNotFoundError: Who&#x27;s Watching screen Title Was Not Found!</span><br/><br/>ux_flows/bilue_app/navigator.py:31: WWSTitleNotFoundError<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feaa350&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_003_watchlist_shows_list_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_003_Watchlist Screen *****************&quot;)<br/>    <br/>            # wws screen<br/>            self.navigator.go_wws_to_watchlist(App, &quot;&quot;, True)<br/>            self.watchlist_screen.click(self.watchlist_screen.wl_watchlist_tab)  # gaurav<br/>            self.soft_assert.assert_true(self.watchlist_screen.validate_shows_in_watchlist(self.watchlist_shows_list),<br/>                                         &quot;List of Shows in Watchlist Visible&quot;)<br/>    <br/>            self.soft_assert.assert_all()<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_watchlist.py:145: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feaa350&gt;, app = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/>e = WWSTitleNotFoundError(&quot;Who&#x27;s Watching screen Title Was Not Found!&quot;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestWatchlist.test_003_watchlist_shows_list_validation failed: Who&#x27;s Watching screen Title Was Not Found!</span><br/><br/>tests/bilue_app/base_tests.py:73: Exception<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_watchlist.py:134 *************** Test_003_Watchlist Screen *****************
+INFO     root:utils.py:391 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:205 0 Checking for element //*[contains(@text,&quot;watching?&quot;)]
+INFO     root:utils.py:205 1 Checking for element //*[contains(@text,&quot;watching?&quot;)]
+WARNING  root:whos_watching_screens.py:229 Who&#x27;s Watching Title does not exist. Continue to Login...Element never became visible: xpath (//*[contains(@text,&quot;watching?&quot;)])
+INFO     root:base_ui.py:30 *************** verifying element visibility
+ERROR    root:base_tests.py:69 TestWatchlist.test_003_watchlist_shows_list_validation failed: Who&#x27;s Watching screen Title Was Not Found!
+ERROR    root:base_tests.py:72 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_001_watchlist_content_validation_screenshot_2023_06_16-13_24_17.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_002_watchlist_to_vh_tab_content_validation_screenshot_2023_06_16-13_25_01.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_003_watchlist_shows_list_validation_screenshot_2023_06_16-13_25_08.png&#x27;]<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_006_watchlist_to_vh_tab_shows_list_validation</td>
+          <td class="col-duration">44.11</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_006_watchlist_to_vh_tab_shows_list_validation_screenshot_2023_06_16-13_25_53.png" width="300"/></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_006_watchlist_to_vh_tab_shows_list_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feab050&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_006_watchlist_to_vh_tab_shows_list_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_006_Watchlist Screen *****************&quot;)<br/>            # watchlist screen<br/>&gt;           self.watchlist_screen.click(self.watchlist_screen.wl_viewing_history_tab)<br/><br/>tests/bilue_app/test_watchlist.py:203: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;page_objects.bilue_app.watchlist_screen.WatchlistScreen object at 0x1101b1990&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[@text=&#x27;Viewing History&#x27;]&quot;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>&gt;       self.utils.click(locator, element)<br/><br/>page_objects/bilue_app/base_ui.py:62: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x1101b1710&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[@text=&#x27;Viewing History&#x27;]&quot;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>        if element is not None:<br/>            element.click()<br/>            self.logger.info(f&quot;Clicked on element {str(element)}&quot;)<br/>        elif locator is not None:<br/>&gt;           element = self.wait_visible(locator)<br/><br/>utilities/utils.py:231: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x1101b1710&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[@text=&#x27;Viewing History&#x27;]&quot;), timeout = 20<br/><br/>    def wait_visible(self, locator, timeout=None):<br/>        &quot;&quot;&quot;<br/>        This is a Python function that waits for an element to become visible on a mobile app&#x27;s user interface using<br/>        Appium. The element&#x27;s location is specified by the locator argument, which is a tuple containing two values:<br/>        the method for finding the element (e.g., accessibility_id, class_name, etc.) and the search criteria (e.g.,<br/>        &#x27;button1&#x27;, &#x27;input_field&#x27;, etc.).<br/>    <br/>        The function repeatedly calls the is_visible() method, which checks if the element is currently visible on<br/>        the screen, until the element becomes visible or the timeout value is reached. The timeout value depends on<br/>        the platform being used, either 2 seconds for iOS or 1000 for Android. If the element is never visible,<br/>        the function raises an exception indicating that the element never became visible, including the method and<br/>        search criteria used.<br/>    <br/>        :param timeout:<br/>        :param locator:<br/>        :return:<br/>        &quot;&quot;&quot;<br/>        i = 0<br/>        platform_name = ReadProperties.getPlatformName()<br/>        if timeout is None:<br/>            if platform_name == &#x27;ios&#x27;:<br/>                timeout = ReadProperties.getiOSWaitTime()<br/>            else:<br/>                timeout = ReadProperties.getAndroidWaitTime()<br/>    <br/>        self.logger.warning(&quot; Wait Timeout Cycle is: &quot; + str(timeout))<br/>    <br/>        while i != timeout:<br/>            try:<br/>                if not self.is_visible(locator):<br/>                    self.logger.info(str(i) + &quot; Checking for element &quot; + locator[1])<br/>                else:<br/>                    self.logger.info(str(i) + &quot; element visible: &quot; + locator[1])<br/>                    return self.get_element(locator)<br/>            except NoSuchElementException as e:<br/>                self.logger.error(&quot;Error occurred while finding element: %s&quot;, str(e))<br/>                sleep(0.1)<br/>            i += 1<br/>&gt;       raise Exception(&#x27;Element never became visible: %s (%s)&#x27; % (locator[0], locator[1]))<br/><span class="error">E       Exception: Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])</span><br/><br/>utilities/utils.py:213: Exception<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feab050&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_006_watchlist_to_vh_tab_shows_list_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_006_Watchlist Screen *****************&quot;)<br/>            # watchlist screen<br/>            self.watchlist_screen.click(self.watchlist_screen.wl_viewing_history_tab)<br/>            self.soft_assert.assert_true(<br/>                self.watchlist_screen.validate_shows_in_watchlist(self.viewing_history_shows_list),<br/>                &quot;List of Shows in Watchlist should be Visible&quot;)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(<br/>                self.watchlist_screen.wl_vh_your_viewing_history_clear_viewing_history_btn),<br/>                &quot;Viewing History Clear Button should be Visible&quot;)<br/>            self.soft_assert.assert_all()<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_watchlist.py:213: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feab050&gt;, app = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/>e = Exception(&quot;Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])&quot;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestWatchlist.test_006_watchlist_to_vh_tab_shows_list_validation failed: Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])</span><br/><br/>tests/bilue_app/base_tests.py:73: Exception<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_watchlist.py:201 *************** Test_006_Watchlist Screen *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 20
+INFO     root:utils.py:205 0 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 1 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 2 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 3 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 4 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 5 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 6 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 7 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 8 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 9 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 10 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 11 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 12 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 13 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 14 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 15 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 16 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 17 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 18 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 19 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+ERROR    root:base_tests.py:69 TestWatchlist.test_006_watchlist_to_vh_tab_shows_list_validation failed: Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])
+ERROR    root:base_tests.py:72 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_001_watchlist_content_validation_screenshot_2023_06_16-13_24_17.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_002_watchlist_to_vh_tab_content_validation_screenshot_2023_06_16-13_25_01.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_003_watchlist_shows_list_validation_screenshot_2023_06_16-13_25_08.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_006_watchlist_to_vh_tab_shows_list_validation_screenshot_2023_06_16-13_25_53.png&#x27;]<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_007_watchlist_new_show_added_to_watch_list_validation</td>
+          <td class="col-duration">41.42</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_007_watchlist_new_show_added_to_watch_list_validation_screenshot_2023_06_16-13_26_35.png" width="300"/></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_007_watchlist_new_show_added_to_watch_list_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feab450&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_007_watchlist_new_show_added_to_watch_list_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_07_Watchlist Screen *****************&quot;)<br/>    <br/>&gt;           self.watchlist_screen.click(self.watchlist_screen.show_locator_by_name(self.viewing_history_shows_list[0]))<br/><br/>tests/bilue_app/test_watchlist.py:221: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;page_objects.bilue_app.watchlist_screen.WatchlistScreen object at 0x1101c8510&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[contains(@text,&#x27;Queerstralia&#x27;)]&quot;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>&gt;       self.utils.click(locator, element)<br/><br/>page_objects/bilue_app/base_ui.py:62: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x1101c8450&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[contains(@text,&#x27;Queerstralia&#x27;)]&quot;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>        if element is not None:<br/>            element.click()<br/>            self.logger.info(f&quot;Clicked on element {str(element)}&quot;)<br/>        elif locator is not None:<br/>&gt;           element = self.wait_visible(locator)<br/><br/>utilities/utils.py:231: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x1101c8450&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[contains(@text,&#x27;Queerstralia&#x27;)]&quot;), timeout = 20<br/><br/>    def wait_visible(self, locator, timeout=None):<br/>        &quot;&quot;&quot;<br/>        This is a Python function that waits for an element to become visible on a mobile app&#x27;s user interface using<br/>        Appium. The element&#x27;s location is specified by the locator argument, which is a tuple containing two values:<br/>        the method for finding the element (e.g., accessibility_id, class_name, etc.) and the search criteria (e.g.,<br/>        &#x27;button1&#x27;, &#x27;input_field&#x27;, etc.).<br/>    <br/>        The function repeatedly calls the is_visible() method, which checks if the element is currently visible on<br/>        the screen, until the element becomes visible or the timeout value is reached. The timeout value depends on<br/>        the platform being used, either 2 seconds for iOS or 1000 for Android. If the element is never visible,<br/>        the function raises an exception indicating that the element never became visible, including the method and<br/>        search criteria used.<br/>    <br/>        :param timeout:<br/>        :param locator:<br/>        :return:<br/>        &quot;&quot;&quot;<br/>        i = 0<br/>        platform_name = ReadProperties.getPlatformName()<br/>        if timeout is None:<br/>            if platform_name == &#x27;ios&#x27;:<br/>                timeout = ReadProperties.getiOSWaitTime()<br/>            else:<br/>                timeout = ReadProperties.getAndroidWaitTime()<br/>    <br/>        self.logger.warning(&quot; Wait Timeout Cycle is: &quot; + str(timeout))<br/>    <br/>        while i != timeout:<br/>            try:<br/>                if not self.is_visible(locator):<br/>                    self.logger.info(str(i) + &quot; Checking for element &quot; + locator[1])<br/>                else:<br/>                    self.logger.info(str(i) + &quot; element visible: &quot; + locator[1])<br/>                    return self.get_element(locator)<br/>            except NoSuchElementException as e:<br/>                self.logger.error(&quot;Error occurred while finding element: %s&quot;, str(e))<br/>                sleep(0.1)<br/>            i += 1<br/>&gt;       raise Exception(&#x27;Element never became visible: %s (%s)&#x27; % (locator[0], locator[1]))<br/><span class="error">E       Exception: Element never became visible: xpath (//*[contains(@text,&#x27;Queerstralia&#x27;)])</span><br/><br/>utilities/utils.py:213: Exception<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feab450&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_007_watchlist_new_show_added_to_watch_list_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_07_Watchlist Screen *****************&quot;)<br/>    <br/>            self.watchlist_screen.click(self.watchlist_screen.show_locator_by_name(self.viewing_history_shows_list[0]))<br/>            self.watchlist_screen.add_or_remove_show_in_watchlist(&quot;add&quot;)<br/>            self.watchlist_screen.click(self.watchlist_screen.wl_show_back_to_watchlist_btn)<br/>    <br/>            # from viewing history to watchlist tab<br/>            self.watchlist_screen.click(self.watchlist_screen.wl_watchlist_tab)<br/>            self.soft_assert(<br/>                self.watchlist_screen.validate_shows_in_watchlist(self.viewing_history_shows_list[0]),<br/>                self.viewing_history_shows_list[0] + &quot; Show is added to the watch list Tab&quot;)<br/>    <br/>            self.soft_assert.assert_all()<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_watchlist.py:234: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feab450&gt;, app = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/>e = Exception(&quot;Element never became visible: xpath (//*[contains(@text,&#x27;Queerstralia&#x27;)])&quot;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestWatchlist.test_007_watchlist_new_show_added_to_watch_list_validation failed: Element never became visible: xpath (//*[contains(@text,&#x27;Queerstralia&#x27;)])</span><br/><br/>tests/bilue_app/base_tests.py:73: Exception<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_watchlist.py:219 *************** Test_07_Watchlist Screen *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 20
+INFO     root:utils.py:205 0 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 1 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 2 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 3 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 4 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 5 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 6 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 7 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 8 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 9 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 10 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 11 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 12 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 13 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 14 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 15 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 16 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 17 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 18 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 19 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+ERROR    root:base_tests.py:69 TestWatchlist.test_007_watchlist_new_show_added_to_watch_list_validation failed: Element never became visible: xpath (//*[contains(@text,&#x27;Queerstralia&#x27;)])
+ERROR    root:base_tests.py:72 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_001_watchlist_content_validation_screenshot_2023_06_16-13_24_17.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_002_watchlist_to_vh_tab_content_validation_screenshot_2023_06_16-13_25_01.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_003_watchlist_shows_list_validation_screenshot_2023_06_16-13_25_08.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_006_watchlist_to_vh_tab_shows_list_validation_screenshot_2023_06_16-13_25_53.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_007_watchlist_new_show_added_to_watch_list_validation_screenshot_2023_06_16-13_26_35.png&#x27;]<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_008_watchlist_new_show_removed_from_watch_list_validation</td>
+          <td class="col-duration">41.47</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_008_watchlist_new_show_removed_from_watch_list_validation_screenshot_2023_06_16-13_27_16.png" width="300"/></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_008_watchlist_new_show_removed_from_watch_list_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feabb50&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_008_watchlist_new_show_removed_from_watch_list_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_08_Watchlist Screen *****************&quot;)<br/>            # watchlist screen<br/>&gt;           self.watchlist_screen.click(self.watchlist_screen.show_locator_by_name(self.viewing_history_shows_list[0]))<br/><br/>tests/bilue_app/test_watchlist.py:242: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;page_objects.bilue_app.watchlist_screen.WatchlistScreen object at 0x1101ccd10&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[contains(@text,&#x27;Queerstralia&#x27;)]&quot;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>&gt;       self.utils.click(locator, element)<br/><br/>page_objects/bilue_app/base_ui.py:62: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x1101ccd50&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[contains(@text,&#x27;Queerstralia&#x27;)]&quot;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>        if element is not None:<br/>            element.click()<br/>            self.logger.info(f&quot;Clicked on element {str(element)}&quot;)<br/>        elif locator is not None:<br/>&gt;           element = self.wait_visible(locator)<br/><br/>utilities/utils.py:231: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x1101ccd50&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[contains(@text,&#x27;Queerstralia&#x27;)]&quot;), timeout = 20<br/><br/>    def wait_visible(self, locator, timeout=None):<br/>        &quot;&quot;&quot;<br/>        This is a Python function that waits for an element to become visible on a mobile app&#x27;s user interface using<br/>        Appium. The element&#x27;s location is specified by the locator argument, which is a tuple containing two values:<br/>        the method for finding the element (e.g., accessibility_id, class_name, etc.) and the search criteria (e.g.,<br/>        &#x27;button1&#x27;, &#x27;input_field&#x27;, etc.).<br/>    <br/>        The function repeatedly calls the is_visible() method, which checks if the element is currently visible on<br/>        the screen, until the element becomes visible or the timeout value is reached. The timeout value depends on<br/>        the platform being used, either 2 seconds for iOS or 1000 for Android. If the element is never visible,<br/>        the function raises an exception indicating that the element never became visible, including the method and<br/>        search criteria used.<br/>    <br/>        :param timeout:<br/>        :param locator:<br/>        :return:<br/>        &quot;&quot;&quot;<br/>        i = 0<br/>        platform_name = ReadProperties.getPlatformName()<br/>        if timeout is None:<br/>            if platform_name == &#x27;ios&#x27;:<br/>                timeout = ReadProperties.getiOSWaitTime()<br/>            else:<br/>                timeout = ReadProperties.getAndroidWaitTime()<br/>    <br/>        self.logger.warning(&quot; Wait Timeout Cycle is: &quot; + str(timeout))<br/>    <br/>        while i != timeout:<br/>            try:<br/>                if not self.is_visible(locator):<br/>                    self.logger.info(str(i) + &quot; Checking for element &quot; + locator[1])<br/>                else:<br/>                    self.logger.info(str(i) + &quot; element visible: &quot; + locator[1])<br/>                    return self.get_element(locator)<br/>            except NoSuchElementException as e:<br/>                self.logger.error(&quot;Error occurred while finding element: %s&quot;, str(e))<br/>                sleep(0.1)<br/>            i += 1<br/>&gt;       raise Exception(&#x27;Element never became visible: %s (%s)&#x27; % (locator[0], locator[1]))<br/><span class="error">E       Exception: Element never became visible: xpath (//*[contains(@text,&#x27;Queerstralia&#x27;)])</span><br/><br/>utilities/utils.py:213: Exception<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feabb50&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_008_watchlist_new_show_removed_from_watch_list_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_08_Watchlist Screen *****************&quot;)<br/>            # watchlist screen<br/>            self.watchlist_screen.click(self.watchlist_screen.show_locator_by_name(self.viewing_history_shows_list[0]))<br/>            self.watchlist_screen.add_or_remove_show_in_watchlist(&quot;remove&quot;)<br/>    <br/>            self.watchlist_screen.click(self.watchlist_screen.wl_show_back_to_watchlist_btn)<br/>            self.watchlist_screen.click(self.watchlist_screen.wl_watchlist_tab)  # gaurav<br/>            self.soft_assert.assert_false(<br/>                self.watchlist_screen.validate_shows_in_watchlist(self.viewing_history_shows_list[0]),<br/>                self.viewing_history_shows_list[0] + &quot; Show is removed from the watch list Tab&quot;)<br/>            self.navigator.go_to_wws(App)<br/>            self.soft_assert.assert_all()<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_watchlist.py:254: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feabb50&gt;, app = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/>e = Exception(&quot;Element never became visible: xpath (//*[contains(@text,&#x27;Queerstralia&#x27;)])&quot;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestWatchlist.test_008_watchlist_new_show_removed_from_watch_list_validation failed: Element never became visible: xpath (//*[contains(@text,&#x27;Queerstralia&#x27;)])</span><br/><br/>tests/bilue_app/base_tests.py:73: Exception<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_watchlist.py:240 *************** Test_08_Watchlist Screen *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 20
+INFO     root:utils.py:205 0 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 1 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 2 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 3 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 4 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 5 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 6 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 7 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 8 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 9 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 10 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 11 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 12 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 13 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 14 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 15 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 16 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 17 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 18 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+INFO     root:utils.py:205 19 Checking for element //*[contains(@text,&#x27;Queerstralia&#x27;)]
+ERROR    root:base_tests.py:69 TestWatchlist.test_008_watchlist_new_show_removed_from_watch_list_validation failed: Element never became visible: xpath (//*[contains(@text,&#x27;Queerstralia&#x27;)])
+ERROR    root:base_tests.py:72 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_001_watchlist_content_validation_screenshot_2023_06_16-13_24_17.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_002_watchlist_to_vh_tab_content_validation_screenshot_2023_06_16-13_25_01.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_003_watchlist_shows_list_validation_screenshot_2023_06_16-13_25_08.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_006_watchlist_to_vh_tab_shows_list_validation_screenshot_2023_06_16-13_25_53.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_007_watchlist_new_show_added_to_watch_list_validation_screenshot_2023_06_16-13_26_35.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_008_watchlist_new_show_removed_from_watch_list_validation_screenshot_2023_06_16-13_27_16.png&#x27;]<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_009_watchlist_kids_content_validation</td>
+          <td class="col-duration">6.53</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_009_watchlist_kids_content_validation_screenshot_2023_06_16-13_27_23.png" width="300"/></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_009_watchlist_kids_content_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feb4250&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_009_watchlist_kids_content_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_09_Watchlist Screen *****************&quot;)<br/>    <br/>            # Watchlist<br/>            #    self.profile.delete_all_sub_profiles_except_one(App)<br/>&gt;           self.profile.create_new_sub_profile(App, self.new_child_sub_profile_name,<br/>                                                self.new_child_sub_profile_picture_image_name, True)<br/><br/>tests/bilue_app/test_watchlist.py:264: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;ux_flows.bilue_app.profile.Profile object at 0x1101a3d10&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;, new_profile_name = &#x27;Auto_child_created&#x27;<br/>new_profile_picture_image_name = &#x27;bandit&#x27;, child_profile = True, child_year = 2022<br/><br/>    def create_new_sub_profile(self, App: Application, new_profile_name: str, new_profile_picture_image_name: str,<br/>                               child_profile=False,<br/>                               child_year=2022):<br/>        &quot;&quot;&quot;<br/>        Note: Before using this function, ensure that the current screen is the &quot;Who&#x27;s Watching&quot; screen.<br/>        This function creates a sub-profile in a streaming app by updating the profile name, picture, and child settings if applicable.<br/>        :param App:<br/>        :param new_profile_name:<br/>        :param new_profile_picture_image_name:<br/>        :param child_profile:<br/>        :param child_year:<br/>        :return:<br/>        &quot;&quot;&quot;<br/>        whosWatchingScreen = WhosWatchingScreens(app=App)<br/>    <br/>        if not whosWatchingScreen.verifyTitleVisible(2):<br/>&gt;           raise WWSTitleNotFoundError(&quot;Who&#x27;s Watching screen Title Was Not Found!&quot;)<br/><span class="error">E           ux_flows.bilue_app.profile.WWSTitleNotFoundError: Who&#x27;s Watching screen Title Was Not Found!</span><br/><br/>ux_flows/bilue_app/profile.py:50: WWSTitleNotFoundError<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feb4250&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_009_watchlist_kids_content_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_09_Watchlist Screen *****************&quot;)<br/>    <br/>            # Watchlist<br/>            #    self.profile.delete_all_sub_profiles_except_one(App)<br/>            self.profile.create_new_sub_profile(App, self.new_child_sub_profile_name,<br/>                                                self.new_child_sub_profile_picture_image_name, True)<br/>            self.whos_watching_screen.click(<br/>                self.whos_watching_screen.subprofile_btn_by_name(self.new_child_sub_profile_name))<br/>            self.home_screen.click(self.home_screen.main_menu_btn)<br/>            # In Android Categories Side Bar button is already clicked<br/>            if ReadProperties.getPlatformName() == &#x27;ios&#x27;:<br/>                self.watchlist_screen.click(self.watchlist_screen.your_bilue_app_side_bar_drop_down_btn)<br/>            elif ReadProperties.getPlatformName() == &#x27;Android&#x27;:<br/>                if not self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_watchlist_side_bar_btn, 2):<br/>                    self.watchlist_screen.click(self.watchlist_screen.your_bilue_app_side_bar_drop_down_btn)<br/>    <br/>            self.soft_assert(<br/>                self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_watchlist_side_bar_btn),<br/>                &quot;Watch List Side Bar Button on Side Bar Visible&quot;)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.vh_side_bar_btn),<br/>                             &quot;Viewing History Side Bar Button on Side Bar Visible&quot;)<br/>            self.watchlist_screen.click(self.watchlist_screen.wl_watchlist_side_bar_btn)<br/>    <br/>            self.logger.info(&quot;Navigated to Watchlist Screen!&quot;)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_your_app_title),<br/>                             &quot;Title on Watch List Screen Visible&quot;)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_watchlist_tab),<br/>                             &quot;Watch List Tab Visible&quot;)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_viewing_history_tab),<br/>                             &quot;Viewing History Tab Visible&quot;)<br/>            if ReadProperties.getPlatformName() == &#x27;ios&#x27;:<br/>                attrib = &quot;value&quot;<br/>                self.soft_assert.assert_equal(<br/>                    self.watchlist_screen.get_attribute(self.watchlist_screen.wl_your_watch_list_is_empty_txt, attrib),<br/>                    &quot;Your watch list is empty&quot;,<br/>                    &quot;Watch List Empty Text Matched with Actual value: &quot; + self.watchlist_screen.get_attribute(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_txt, attrib))<br/>                self.soft_assert(<br/>                    self.watchlist_screen.is_visible_after_wait(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt),<br/>                    &quot;Watch List Empty Sub Text Visible&quot;)<br/>                self.soft_assert.assert_equal(<br/>                    self.watchlist_screen.get_attribute(self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt,<br/>                                                        attrib),<br/>                    &quot;You can add shows to your watch list by tapping the add to watch list icon on any program page&quot;,<br/>                    &quot;Watch List Empty Sub Text Matched with Actual Value: &quot; + self.watchlist_screen.get_attribute(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt, attrib))<br/>            elif ReadProperties.getPlatformName() == &#x27;Android&#x27;:<br/>                attrib = &quot;text&quot;<br/>                self.soft_assert.assert_equal(<br/>                    self.watchlist_screen.get_attribute(self.watchlist_screen.wl_your_watch_list_is_empty_txt, attrib),<br/>                    &quot;Your Watchlist is empty&quot;,<br/>                    &quot;Watch List Empty Text Matched with Actual value: &quot; + self.watchlist_screen.get_attribute(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_txt, attrib))<br/>                self.soft_assert(<br/>                    self.watchlist_screen.is_visible_after_wait(self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt),<br/>                    &quot;Watch List Empty Sub Text Visible&quot;)<br/>                self.soft_assert.assert_equal(<br/>                    self.watchlist_screen.get_attribute(self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt, attrib),<br/>                    &quot;You can add shows to your Watchlist by tapping the ‘Add to Watchlist’ icon on any program page.&quot;,<br/>                    &quot;Watch List Empty Sub Text Matched with Actual Value: &quot; + self.watchlist_screen.get_attribute(<br/>                        self.watchlist_screen.wl_your_watch_list_is_empty_sub_txt, attrib))<br/>    <br/>            self.soft_assert.assert_all()<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_watchlist.py:326: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feb4250&gt;, app = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/>e = WWSTitleNotFoundError(&quot;Who&#x27;s Watching screen Title Was Not Found!&quot;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestWatchlist.test_009_watchlist_kids_content_validation failed: Who&#x27;s Watching screen Title Was Not Found!</span><br/><br/>tests/bilue_app/base_tests.py:73: Exception<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_watchlist.py:260 *************** Test_09_Watchlist Screen *****************
+INFO     root:utils.py:391 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:205 0 Checking for element //*[contains(@text,&quot;watching?&quot;)]
+INFO     root:utils.py:205 1 Checking for element //*[contains(@text,&quot;watching?&quot;)]
+WARNING  root:whos_watching_screens.py:229 Who&#x27;s Watching Title does not exist. Continue to Login...Element never became visible: xpath (//*[contains(@text,&quot;watching?&quot;)])
+INFO     root:base_ui.py:30 *************** verifying element visibility
+ERROR    root:base_tests.py:69 TestWatchlist.test_009_watchlist_kids_content_validation failed: Who&#x27;s Watching screen Title Was Not Found!
+ERROR    root:base_tests.py:72 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_001_watchlist_content_validation_screenshot_2023_06_16-13_24_17.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_002_watchlist_to_vh_tab_content_validation_screenshot_2023_06_16-13_25_01.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_003_watchlist_shows_list_validation_screenshot_2023_06_16-13_25_08.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_006_watchlist_to_vh_tab_shows_list_validation_screenshot_2023_06_16-13_25_53.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_007_watchlist_new_show_added_to_watch_list_validation_screenshot_2023_06_16-13_26_35.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_008_watchlist_new_show_removed_from_watch_list_validation_screenshot_2023_06_16-13_27_16.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_009_watchlist_kids_content_validation_screenshot_2023_06_16-13_27_23.png&#x27;]<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_010_kids_watchlist_to_vh_content_validation</td>
+          <td class="col-duration">42.16</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_010_kids_watchlist_to_vh_content_validation_screenshot_2023_06_16-13_28_05.png" width="300"/></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_010_kids_watchlist_to_vh_content_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feb4950&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_010_kids_watchlist_to_vh_content_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_010_Watchlist Screen *****************&quot;)<br/>    <br/>            # Viewing History<br/>&gt;           self.watchlist_screen.click(self.watchlist_screen.wl_viewing_history_tab)<br/><br/>tests/bilue_app/test_watchlist.py:335: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;page_objects.bilue_app.watchlist_screen.WatchlistScreen object at 0x10ffde250&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[@text=&#x27;Viewing History&#x27;]&quot;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>&gt;       self.utils.click(locator, element)<br/><br/>page_objects/bilue_app/base_ui.py:62: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x10ffdd590&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[@text=&#x27;Viewing History&#x27;]&quot;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>        if element is not None:<br/>            element.click()<br/>            self.logger.info(f&quot;Clicked on element {str(element)}&quot;)<br/>        elif locator is not None:<br/>&gt;           element = self.wait_visible(locator)<br/><br/>utilities/utils.py:231: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x10ffdd590&gt;, locator = (&#x27;xpath&#x27;, &quot;//*[@text=&#x27;Viewing History&#x27;]&quot;), timeout = 20<br/><br/>    def wait_visible(self, locator, timeout=None):<br/>        &quot;&quot;&quot;<br/>        This is a Python function that waits for an element to become visible on a mobile app&#x27;s user interface using<br/>        Appium. The element&#x27;s location is specified by the locator argument, which is a tuple containing two values:<br/>        the method for finding the element (e.g., accessibility_id, class_name, etc.) and the search criteria (e.g.,<br/>        &#x27;button1&#x27;, &#x27;input_field&#x27;, etc.).<br/>    <br/>        The function repeatedly calls the is_visible() method, which checks if the element is currently visible on<br/>        the screen, until the element becomes visible or the timeout value is reached. The timeout value depends on<br/>        the platform being used, either 2 seconds for iOS or 1000 for Android. If the element is never visible,<br/>        the function raises an exception indicating that the element never became visible, including the method and<br/>        search criteria used.<br/>    <br/>        :param timeout:<br/>        :param locator:<br/>        :return:<br/>        &quot;&quot;&quot;<br/>        i = 0<br/>        platform_name = ReadProperties.getPlatformName()<br/>        if timeout is None:<br/>            if platform_name == &#x27;ios&#x27;:<br/>                timeout = ReadProperties.getiOSWaitTime()<br/>            else:<br/>                timeout = ReadProperties.getAndroidWaitTime()<br/>    <br/>        self.logger.warning(&quot; Wait Timeout Cycle is: &quot; + str(timeout))<br/>    <br/>        while i != timeout:<br/>            try:<br/>                if not self.is_visible(locator):<br/>                    self.logger.info(str(i) + &quot; Checking for element &quot; + locator[1])<br/>                else:<br/>                    self.logger.info(str(i) + &quot; element visible: &quot; + locator[1])<br/>                    return self.get_element(locator)<br/>            except NoSuchElementException as e:<br/>                self.logger.error(&quot;Error occurred while finding element: %s&quot;, str(e))<br/>                sleep(0.1)<br/>            i += 1<br/>&gt;       raise Exception(&#x27;Element never became visible: %s (%s)&#x27; % (locator[0], locator[1]))<br/><span class="error">E       Exception: Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])</span><br/><br/>utilities/utils.py:213: Exception<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feb4950&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_010_kids_watchlist_to_vh_content_validation(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_010_Watchlist Screen *****************&quot;)<br/>    <br/>            # Viewing History<br/>            self.watchlist_screen.click(self.watchlist_screen.wl_viewing_history_tab)<br/>            self.soft_assert(self.watchlist_screen.is_visible_after_wait(<br/>                self.watchlist_screen.wl_vh_your_viewing_history_is_empty_txt),<br/>                &quot;Viewing History Empty Text Visible&quot;)<br/>            self.navigator.go_to_wws(App)<br/>            self.soft_assert.assert_all()<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_watchlist.py:343: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feb4950&gt;, app = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/>e = Exception(&quot;Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])&quot;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestWatchlist.test_010_kids_watchlist_to_vh_content_validation failed: Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])</span><br/><br/>tests/bilue_app/base_tests.py:73: Exception<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_watchlist.py:332 *************** Test_010_Watchlist Screen *****************
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 20
+INFO     root:utils.py:205 0 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 1 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 2 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 3 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 4 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 5 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 6 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 7 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 8 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 9 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 10 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 11 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 12 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 13 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 14 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 15 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 16 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 17 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 18 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+INFO     root:utils.py:205 19 Checking for element //*[@text=&#x27;Viewing History&#x27;]
+ERROR    root:base_tests.py:69 TestWatchlist.test_010_kids_watchlist_to_vh_content_validation failed: Element never became visible: xpath (//*[@text=&#x27;Viewing History&#x27;])
+ERROR    root:base_tests.py:72 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_001_watchlist_content_validation_screenshot_2023_06_16-13_24_17.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_002_watchlist_to_vh_tab_content_validation_screenshot_2023_06_16-13_25_01.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_003_watchlist_shows_list_validation_screenshot_2023_06_16-13_25_08.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_006_watchlist_to_vh_tab_shows_list_validation_screenshot_2023_06_16-13_25_53.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_007_watchlist_new_show_added_to_watch_list_validation_screenshot_2023_06_16-13_26_35.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_008_watchlist_new_show_removed_from_watch_list_validation_screenshot_2023_06_16-13_27_16.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_009_watchlist_kids_content_validation_screenshot_2023_06_16-13_27_23.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_010_kids_watchlist_to_vh_content_validation_screenshot_2023_06_16-13_28_05.png&#x27;]<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_0000_delete_all_sub_profiles</td>
+          <td class="col-duration">49.98</td>
+          <td class="col-links"></td>
+          <td><img height="500" src="/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_0000_delete_all_sub_profiles_screenshot_2023_06_16-13_28_52.png" width="300"/></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_0000_delete_all_sub_profiles</td></tr>
+        <tr>
+          <td class="extra" colspan="6">
+            <div class="log">self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feb6490&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_0000_delete_all_sub_profiles(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_0000_Who&#x27;s Watching Screen *****************&quot;)<br/>&gt;           self.navigator.go_to_wws(App)<br/><br/>tests/bilue_app/test_watchlist.py:438: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;ux_flows.bilue_app.navigator.Navigator object at 0x1101ee590&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def go_to_wws(self, App: Application):<br/>        whosWatchingScreen = WhosWatchingScreens(app=App)<br/>        if not whosWatchingScreen.verifyTitleVisible(2):<br/>            home_screen = HomeScreen(app=App)<br/>            my_account_profile_screen = MyAccountProfileScreen(app=App)<br/>&gt;           home_screen.click(home_screen.myaccount_profile_btn)<br/><br/>ux_flows/bilue_app/navigator.py:142: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;page_objects.bilue_app.home_screen.HomeScreen object at 0x10ffa3850&gt;, locator = (&#x27;accessibility id&#x27;, &#x27;My account&#x27;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>&gt;       self.utils.click(locator, element)<br/><br/>page_objects/bilue_app/base_ui.py:62: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x10ffa31d0&gt;, locator = (&#x27;accessibility id&#x27;, &#x27;My account&#x27;), element = None<br/><br/>    def click(self, locator=None, element=None):<br/>        if element is not None:<br/>            element.click()<br/>            self.logger.info(f&quot;Clicked on element {str(element)}&quot;)<br/>        elif locator is not None:<br/>&gt;           element = self.wait_visible(locator)<br/><br/>utilities/utils.py:231: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;utilities.utils.Utils object at 0x10ffa31d0&gt;, locator = (&#x27;accessibility id&#x27;, &#x27;My account&#x27;), timeout = 20<br/><br/>    def wait_visible(self, locator, timeout=None):<br/>        &quot;&quot;&quot;<br/>        This is a Python function that waits for an element to become visible on a mobile app&#x27;s user interface using<br/>        Appium. The element&#x27;s location is specified by the locator argument, which is a tuple containing two values:<br/>        the method for finding the element (e.g., accessibility_id, class_name, etc.) and the search criteria (e.g.,<br/>        &#x27;button1&#x27;, &#x27;input_field&#x27;, etc.).<br/>    <br/>        The function repeatedly calls the is_visible() method, which checks if the element is currently visible on<br/>        the screen, until the element becomes visible or the timeout value is reached. The timeout value depends on<br/>        the platform being used, either 2 seconds for iOS or 1000 for Android. If the element is never visible,<br/>        the function raises an exception indicating that the element never became visible, including the method and<br/>        search criteria used.<br/>    <br/>        :param timeout:<br/>        :param locator:<br/>        :return:<br/>        &quot;&quot;&quot;<br/>        i = 0<br/>        platform_name = ReadProperties.getPlatformName()<br/>        if timeout is None:<br/>            if platform_name == &#x27;ios&#x27;:<br/>                timeout = ReadProperties.getiOSWaitTime()<br/>            else:<br/>                timeout = ReadProperties.getAndroidWaitTime()<br/>    <br/>        self.logger.warning(&quot; Wait Timeout Cycle is: &quot; + str(timeout))<br/>    <br/>        while i != timeout:<br/>            try:<br/>                if not self.is_visible(locator):<br/>                    self.logger.info(str(i) + &quot; Checking for element &quot; + locator[1])<br/>                else:<br/>                    self.logger.info(str(i) + &quot; element visible: &quot; + locator[1])<br/>                    return self.get_element(locator)<br/>            except NoSuchElementException as e:<br/>                self.logger.error(&quot;Error occurred while finding element: %s&quot;, str(e))<br/>                sleep(0.1)<br/>            i += 1<br/>&gt;       raise Exception(&#x27;Element never became visible: %s (%s)&#x27; % (locator[0], locator[1]))<br/><span class="error">E       Exception: Element never became visible: accessibility id (My account)</span><br/><br/>utilities/utils.py:213: Exception<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feb6490&gt;, App = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/><br/>    def test_0000_delete_all_sub_profiles(self, App):<br/>    <br/>        try:<br/>            self.init_test(App)<br/>            self.logger.info(&quot;*************** Test_0000_Who&#x27;s Watching Screen *****************&quot;)<br/>            self.navigator.go_to_wws(App)<br/>    <br/>            self.profile.delete_all_sub_profiles_except_one(App)<br/>    <br/>        except Exception as e:<br/>&gt;           self.handle_exception(App, e)<br/><br/>tests/bilue_app/test_watchlist.py:443: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;tests.bilue_app.test_watchlist.TestWatchlist object at 0x10feb6490&gt;, app = &lt;utilities.application.Application object at 0x10ef11290&gt;<br/>e = Exception(&#x27;Element never became visible: accessibility id (My account)&#x27;)<br/><br/>    def handle_exception(self, app, e):<br/>        utils = Utils(app=app)<br/>        test_class_name = self.__class__.__name__<br/>        test_method_name = [frame[3] for frame in inspect.stack() if frame[3].startswith(&quot;test_&quot;)][0]<br/>        test_case_name = f&quot;{test_class_name}.{test_method_name}&quot;<br/>        self.logger.error(f&quot;{test_case_name} failed: {e}&quot;)<br/>        # ScreenshotManager.scr = utils.saveScreenshot(f&quot;{test_case_name}&quot;)<br/>        ScreenshotManager.scr.append(utils.saveScreenshot(f&quot;{test_case_name}&quot;))<br/>        self.logger.error(&quot;Handle Exception With Screenshot: &quot; + str(ScreenshotManager.scr))<br/>&gt;       raise Exception(f&quot;{test_case_name} failed: {e}&quot;)<br/><span class="error">E       Exception: TestWatchlist.test_0000_delete_all_sub_profiles failed: Element never became visible: accessibility id (My account)</span><br/><br/>tests/bilue_app/base_tests.py:73: Exception<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     root:test_watchlist.py:437 *************** Test_0000_Who&#x27;s Watching Screen *****************
+INFO     root:utils.py:391 Implicit Wait for 2
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 2
+INFO     root:utils.py:205 0 Checking for element //*[contains(@text,&quot;watching?&quot;)]
+INFO     root:utils.py:205 1 Checking for element //*[contains(@text,&quot;watching?&quot;)]
+WARNING  root:whos_watching_screens.py:229 Who&#x27;s Watching Title does not exist. Continue to Login...Element never became visible: xpath (//*[contains(@text,&quot;watching?&quot;)])
+INFO     root:base_ui.py:30 *************** verifying element visibility
+WARNING  root:utils.py:200  Wait Timeout Cycle is: 20
+INFO     root:utils.py:205 0 Checking for element My account
+INFO     root:utils.py:205 1 Checking for element My account
+INFO     root:utils.py:205 2 Checking for element My account
+INFO     root:utils.py:205 3 Checking for element My account
+INFO     root:utils.py:205 4 Checking for element My account
+INFO     root:utils.py:205 5 Checking for element My account
+INFO     root:utils.py:205 6 Checking for element My account
+INFO     root:utils.py:205 7 Checking for element My account
+INFO     root:utils.py:205 8 Checking for element My account
+INFO     root:utils.py:205 9 Checking for element My account
+INFO     root:utils.py:205 10 Checking for element My account
+INFO     root:utils.py:205 11 Checking for element My account
+INFO     root:utils.py:205 12 Checking for element My account
+INFO     root:utils.py:205 13 Checking for element My account
+INFO     root:utils.py:205 14 Checking for element My account
+INFO     root:utils.py:205 15 Checking for element My account
+INFO     root:utils.py:205 16 Checking for element My account
+INFO     root:utils.py:205 17 Checking for element My account
+INFO     root:utils.py:205 18 Checking for element My account
+INFO     root:utils.py:205 19 Checking for element My account
+ERROR    root:base_tests.py:69 TestWatchlist.test_0000_delete_all_sub_profiles failed: Element never became visible: accessibility id (My account)
+ERROR    root:base_tests.py:72 Handle Exception With Screenshot: [&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_000_login_screenshot_2023_06_16-13_24_09.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_001_watchlist_content_validation_screenshot_2023_06_16-13_24_17.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_002_watchlist_to_vh_tab_content_validation_screenshot_2023_06_16-13_25_01.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_003_watchlist_shows_list_validation_screenshot_2023_06_16-13_25_08.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_006_watchlist_to_vh_tab_shows_list_validation_screenshot_2023_06_16-13_25_53.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_007_watchlist_new_show_added_to_watch_list_validation_screenshot_2023_06_16-13_26_35.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_008_watchlist_new_show_removed_from_watch_list_validation_screenshot_2023_06_16-13_27_16.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_009_watchlist_kids_content_validation_screenshot_2023_06_16-13_27_23.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_010_kids_watchlist_to_vh_content_validation_screenshot_2023_06_16-13_28_05.png&#x27;, &#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/Screenshots/TestWatchlist.test_0000_delete_all_sub_profiles_screenshot_2023_06_16-13_28_52.png&#x27;]<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:base_tests.py:91 In tearDown<br/></div></td></tr></tbody>
+      <tbody class="skipped results-table-row">
+        <tr>
+          <td class="col-result">Skipped</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_004_watchlist_shows_validation_on_home_page_watchlist_section</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_004_watchlist_shows_validation_on_home_page_watchlist_section</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">(&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/tests/bilue_app/test_watchlist.py&#x27;, 148, &#x27;Skipped: Unstable&#x27;)<br/></div></td></tr></tbody>
+      <tbody class="skipped results-table-row">
+        <tr>
+          <td class="col-result">Skipped</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_005_watchlist_view_all_label_button_on_home_page_watchlist_section</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_005_watchlist_view_all_label_button_on_home_page_watchlist_section</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">(&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/tests/bilue_app/test_watchlist.py&#x27;, 180, &#x27;Skipped: Unstable&#x27;)<br/></div></td></tr></tbody>
+      <tbody class="skipped results-table-row">
+        <tr>
+          <td class="col-result">Skipped</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_011_kids_new_show_add_to_watchlist</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_011_kids_new_show_add_to_watchlist</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">(&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/tests/bilue_app/test_watchlist.py&#x27;, 345, &quot;Skipped: Home Screen Unstable Looking for &#x27;Kids First Show&#x27;&quot;)<br/></div></td></tr></tbody>
+      <tbody class="skipped results-table-row">
+        <tr>
+          <td class="col-result">Skipped</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_012_kids_watchlist_new_show_added_to_watch_list_validation</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_012_kids_watchlist_new_show_added_to_watch_list_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">(&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/tests/bilue_app/test_watchlist.py&#x27;, 375, &#x27;Skipped: dependency on test_011&#x27;)<br/></div></td></tr></tbody>
+      <tbody class="skipped results-table-row">
+        <tr>
+          <td class="col-result">Skipped</td>
+          <td class="col-name">tests/bilue_app/test_watchlist.py::TestWatchlist::test_013_kids_watchlist_new_show_removed_from_watch_list_validation</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td>
+          <td>tests/bilue_app/test_watchlist.py::TestWatchlist::test_013_kids_watchlist_new_show_removed_from_watch_list_validation</td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">(&#x27;/Users/biluesparesydney8/Downloads/mobile-automation-tests/tests/bilue_app/test_watchlist.py&#x27;, 398, &#x27;Skipped: dependency on test_012&#x27;)<br/></div></td></tr></tbody></table></body></html>

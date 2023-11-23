@@ -1,0 +1,12 @@
+{
+  "tests/bilue_app_tv/test_linktv.py::TestLinkTV::test_002_link_tv_with_bilue_account": true,
+  "tests/bilue_app/test_search.py::TestSearch::test_000_login": true,
+  "tests/bilue_app/test_search.py::TestSearch::test_001_search_content_validation": true,
+  "tests/bilue_app/test_search.py::TestSearch::test_002_search_categories_list_validation": true,
+  "tests/bilue_app/test_search.py::TestSearch::test_003_search_type_one_key_validation": true,
+  "tests/bilue_app/test_search.py::TestSearch::test_004_search_type_two_keys_validation": true,
+  "tests/bilue_app/test_search.py::TestSearch::test_0000_delete_all_sub_profiles": true,
+  "tests/bilue_app/test_login.py::test_priority": true,
+  "tests/bilue_app/test_login.py::TestLogin::test_002_login_wws_validation_after_login": true,
+  "tests/bilue_app/test_login.py::TestLogin::test_001_login_flow": true
+}

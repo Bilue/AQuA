@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="4632deb6-c6b1-472e-a17f-e479fbca734d" name="Changes" comment="Refactored, Android Onboarding added">
+      <change beforePath="$PROJECT_DIR$/Logs/Debug/debug.log" beforeDir="false" afterPath="$PROJECT_DIR$/Logs/Debug/debug.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Logs/Error/error.log" beforeDir="false" afterPath="$PROJECT_DIR$/Logs/Error/error.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Logs/Info/logs.log" beforeDir="false" afterPath="$PROJECT_DIR$/Logs/Info/logs.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Logs/Info/logs.log.1" beforeDir="false" afterPath="$PROJECT_DIR$/Logs/Info/logs.log.1" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Logs/Info/logs.log.2" beforeDir="false" afterPath="$PROJECT_DIR$/Logs/Info/logs.log.2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Logs/Info/logs.log.3" beforeDir="false" afterPath="$PROJECT_DIR$/Logs/Info/logs.log.3" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Logs/Info/logs.log.4" beforeDir="false" afterPath="$PROJECT_DIR$/Logs/Info/logs.log.4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Logs/Warning/warning.log" beforeDir="false" afterPath="$PROJECT_DIR$/Logs/Warning/warning.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Reports/Automation-Report.html" beforeDir="false" afterPath="$PROJECT_DIR$/Reports/Automation-Report.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/ABC-iview-tvos.app.zip" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/ABC-iview1901202311.app.zip" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/ABC-listen-ios.zip" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/androidtv.apk" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/mobile-production-debug.apk" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/mobile-production-debug.apk.idsig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/tv-production-debug.apk" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/configs/config.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/ios_capabilities.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/ios_capabilities.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_android/Avatar_Selection_Screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_android/Create_profile.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_android/Edit_Profile_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_android/Exoplayer_elements.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_android/Home_Screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_android/My_Account_Screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_android/Mylogin_Screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_android/Onboarding_Screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_android/Whos_Watching.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_android/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_iOS/Apple_Keyboard.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_iOS/Avatar_selection.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_iOS/Channel_Screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_iOS/Create_profile.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_iOS/Edit_profile.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_iOS/Element_helper.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_iOS/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_iOS/iview_aggregation_top_nav.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/TODO_iOS/video_player.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/base_ui.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/home_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/iview_login_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/menu_sidebar.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/my_account_profile_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/my_login_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/search_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/videoPlayer.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/watchlist_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview/whos_watching_screens.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview_tv/base_ui.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview_tv/launch_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview_tv/linktv_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_iview_tv/whos_watching_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_listen/base_ui.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_listen/login_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_listen/search_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_listen/settings_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_news/base_ui.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/page_objects/abc_news/login_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview/test_home_screen.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview/test_login.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview/test_menu_sidebar.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview/test_profile.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview/test_search.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview/test_switch_profile.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview/test_video_player.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview/test_viewing_history.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview/test_watchlist.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview_tv/base_tests.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview_tv/test_launch.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_iview_tv/test_linktv.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_listen/base_tests.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_listen/test_login.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_listen/test_search.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_listen/test_settings.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_news/base_tests.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/abc_news/test_login.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_android_uiautomator.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_iview_login.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_iview/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_iview/base_screen_action.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_iview/login.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_iview/logout.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_iview/navigator.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_iview/profile.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_iview_tv/base_screen_action.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_iview_tv/navigator.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_listen/base_screen_action.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_listen/login.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_listen/logout.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_news/base_screen_action.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_news/login.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ux_flows/abc_news/logout.py" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExportTestResults" outputFolder="$PROJECT_DIR$" userTempatePath="" />
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="iview_android_menu_side_bar" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2SMbGII2UyaD9004EKkFZsU3a0n" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="autoscrollToSource" value="true" />
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Git.Branch.Popup.ShowAllRemotes": "true",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "/Users/biluesparesydney8/Downloads/AQuA",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PythonContentEntriesConfigurable"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/ux_flows" />
+      <recent name="$PROJECT_DIR$/tests/abc_iview_tv" />
+      <recent name="$PROJECT_DIR$/utilities" />
+      <recent name="$PROJECT_DIR$/page_objects/abc_iview_tv" />
+      <recent name="$PROJECT_DIR$/tests/abc_iview" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python tests.tvOS">
+    <configuration name="automate_cases" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="mobile-automation-tests" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$USER_HOME$/Documents/cw_documents/UploadBulkCases" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$USER_HOME$/Documents/cw_documents/UploadBulkCases/automate_cases.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Android" type="tests" factoryName="py.test">
+      <module name="mobile-automation-tests" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="/usr/local/bin/python3.11" />
+      <option name="SDK_NAME" value="Python 3.11" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;--html\u003dReports/abc_iview_report.html tests/abc_iview/test_menu_sidebar.py --log-cli-level\u003dINFO --section_name\u003dAndroid-Pixel5-iview&quot;" />
+      <option name="_new_additionalArguments" value="&quot;--html\u003dReports/abc_iview_report.html tests/abc_iview_tv/test_login.py --log-cli-level\u003dINFO --section_name\u003datvOS-AndroidTV4K-iview&quot;" />
+      <option name="_new_target" value="&quot;&quot;" />
+      <option name="_new_targetType" value="&quot;CUSTOM&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="atvOS" type="tests" factoryName="py.test">
+      <module name="mobile-automation-tests" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="/usr/local/bin/python3.11" />
+      <option name="SDK_NAME" value="Python 3.11" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;--html\u003dReports/abc_iview_report.html tests/abc_iview_tv/test_login.py --log-cli-level\u003dINFO --section_name\u003datvOS-AndroidTV4K-iview&quot;" />
+      <option name="_new_target" value="&quot;&quot;" />
+      <option name="_new_targetType" value="&quot;CUSTOM&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="iOS" type="tests" factoryName="py.test">
+      <module name="mobile-automation-tests" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="/usr/local/bin/python3.11" />
+      <option name="SDK_NAME" value="Python 3.11" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;--html\u003dReports/abc_iview_report.html tests/abc_iview/test_login.py --log-cli-level\u003dINFO --section_name\u003diOS-iPhone14Pro-iview&quot;" />
+      <option name="_new_target" value="&quot;&quot;" />
+      <option name="_new_targetType" value="&quot;CUSTOM&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="real_iOS" type="tests" factoryName="Autodetect">
+      <module name="mobile-automation-tests" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="/usr/local/bin/python3.11" />
+      <option name="SDK_NAME" value="Python 3.11" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_additionalArguments" value="&quot;--html\u003dReports/abc_iview_report.html tests/abc_iview/test_login.py --log-cli-level\u003dINFO --section_name\u003diOS-realMyiPhone12-iview&quot;" />
+      <option name="_new_target" value="&quot;&quot;" />
+      <option name="_new_targetType" value="&quot;CUSTOM&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="tvOS" type="tests" factoryName="py.test">
+      <module name="mobile-automation-tests" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="/usr/local/bin/python3.11" />
+      <option name="SDK_NAME" value="Python 3.11" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;--html\u003dReports/abc_iview_report.html tests/abc_iview_tv --log-cli-level\u003dINFO --section_name\u003dtvOS-AppleTV4K-iview&quot;" />
+      <option name="_new_target" value="&quot;&quot;" />
+      <option name="_new_targetType" value="&quot;CUSTOM&quot;" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.automate_cases" />
+      <item itemvalue="Python tests.Android" />
+      <item itemvalue="Python tests.atvOS" />
+      <item itemvalue="Python tests.iOS" />
+      <item itemvalue="Python tests.real_iOS" />
+      <item itemvalue="Python tests.tvOS" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.automate_cases" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="4632deb6-c6b1-472e-a17f-e479fbca734d" name="Changes" comment="" />
+      <created>1688959299969</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1688959299969</updated>
+    </task>
+    <task id="LOCAL-00001" summary="ADR Menu Side Bar with Kids">
+      <option name="closed" value="true" />
+      <created>1689603674356</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1689603674356</updated>
+    </task>
+    <task id="LOCAL-00002" summary="SPIKE TV Android &amp; Apple with Appium">
+      <option name="closed" value="true" />
+      <created>1690453264409</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1690453264409</updated>
+    </task>
+    <task id="LOCAL-00003" summary="refactored">
+      <option name="closed" value="true" />
+      <created>1690453412889</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1690453412889</updated>
+    </task>
+    <task id="LOCAL-00004" summary="pushing tested tv apps">
+      <option name="closed" value="true" />
+      <created>1690453634628</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1690453634628</updated>
+    </task>
+    <task id="LOCAL-00005" summary="refactor">
+      <option name="closed" value="true" />
+      <created>1690454449060</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1690454449060</updated>
+    </task>
+    <task id="LOCAL-00006" summary="config reverted">
+      <option name="closed" value="true" />
+      <created>1690454726209</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1690454726209</updated>
+    </task>
+    <task id="LOCAL-00007" summary="search screen objects">
+      <option name="closed" value="true" />
+      <created>1690531376804</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1690531376804</updated>
+    </task>
+    <task id="LOCAL-00008" summary="SEARCH - feature">
+      <option name="closed" value="true" />
+      <created>1690875777833</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1690875777833</updated>
+    </task>
+    <task id="LOCAL-00009" summary="SEARCH - functional tests">
+      <option name="closed" value="true" />
+      <created>1690875951101</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1690875951101</updated>
+    </task>
+    <task id="LOCAL-00010" summary="removed unimplemented methods">
+      <option name="closed" value="true" />
+      <created>1690876191064</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1690876191064</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Refactoring, API, LinkTV">
+      <option name="closed" value="true" />
+      <created>1691486134927</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1691486134927</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Android to review">
+      <option name="closed" value="true" />
+      <created>1691493757650</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1691493757650</updated>
+    </task>
+    <task id="LOCAL-00013" summary="logging API response, return success if 200 OK">
+      <option name="closed" value="true" />
+      <created>1691558089697</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1691558089697</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Onboarding tests">
+      <option name="closed" value="true" />
+      <created>1691712884799</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1691712884799</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Assertions, Common TV Login Flow, Launch Screen &amp; Link TV tests">
+      <option name="closed" value="true" />
+      <created>1691725551011</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1691725551011</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Navigate to WWS">
+      <option name="closed" value="true" />
+      <created>1691725812263</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1691725812263</updated>
+    </task>
+    <task id="LOCAL-00017" summary="Refactor">
+      <option name="closed" value="true" />
+      <created>1691726130987</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1691726130987</updated>
+    </task>
+    <task id="LOCAL-00018" summary="documentation for perform_true_assertions">
+      <option name="closed" value="true" />
+      <created>1691726415387</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1691726415387</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Refactored, Android Onboarding added">
+      <option name="closed" value="true" />
+      <created>1692078162758</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1692078162758</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
+    <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="ADR Menu Side Bar with Kids" />
+    <MESSAGE value="SPIKE TV Android &amp; Apple with Appium" />
+    <MESSAGE value="refactored" />
+    <MESSAGE value="pushing tested tv apps" />
+    <MESSAGE value="refactor" />
+    <MESSAGE value="config reverted" />
+    <MESSAGE value="search screen objects" />
+    <MESSAGE value="SEARCH - feature" />
+    <MESSAGE value="SEARCH - functional tests" />
+    <MESSAGE value="removed unimplemented methods" />
+    <MESSAGE value="Refactoring, API, LinkTV" />
+    <MESSAGE value="Android to review" />
+    <MESSAGE value="logging API response, return success if 200 OK" />
+    <MESSAGE value="Onboarding tests" />
+    <MESSAGE value="Assertions, Common TV Login Flow, Launch Screen &amp; Link TV tests" />
+    <MESSAGE value="Navigate to WWS" />
+    <MESSAGE value="Refactor" />
+    <MESSAGE value="documentation for perform_true_assertions" />
+    <MESSAGE value="Refactored, Android Onboarding added" />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactored, Android Onboarding added" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/utilities/read_properties.py</url>
+          <line>40</line>
+          <option name="timeStamp" value="28" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
